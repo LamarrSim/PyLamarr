@@ -1,0 +1,35 @@
+name: Doxygen on Pages 
+
+on: [push]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  update-docs:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout package"
+        uses: actions/checkout@v3
+      - run: sudo apt-get update
+      - run: sudo apt-get install doxygen graphviz
+      - run: doxygen
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: docs
+      - name: 'Deploy GitHub Pages site'
+        id: deployment
+        uses: actions/deploy-pages@v1
+
