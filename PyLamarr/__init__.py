@@ -11,3 +11,5 @@ def configure_logger(format=None, level=None, datefmt=None):
 
 from PyLamarr.RemoteResource import RemoteResource
 from PyLamarr.function import function
+from PyLamarr.Concatenate import Concatenate
+

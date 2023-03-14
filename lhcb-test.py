@@ -28,7 +28,7 @@ if args.veryverbose:
 ################################################################################
 @PyLamarr.function
 def print_stats (db):
-  df = pd.read_sql_query("SELECT * FROM tmp_particles_recoed_as", db)
+  df = pd.read_sql_query("SELECT * FROM pid", db)
   print (df)
 
 data_pkg = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data" 
@@ -44,6 +44,7 @@ pipeline = LHCb.BasePipeline([
     ('Propagate2CTB', LHCb.Tracking.PropagateToClosestToBeam()),
     ('TrkResolution', LHCb.Tracking.Resolution()),
     ('TrkCovariance', LHCb.Tracking.Covariance()),
+    *LHCb.ParticleID.configure_pipeline(), 
     ('PrintStats', print_stats),
     ],
     batch=5,
