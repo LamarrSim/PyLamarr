@@ -1,27 +1,24 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from pydantic import validate_arguments
 from PyLamarr import RemoteResource
 import SQLamarr
 
-class Resolution:
-  def __init__ (self,
-      url: str = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/"
-                 "models/lhcb.trk.2016MU.20230128.so",
-      symbol: str = "resolution",
-      output_table: str = "tmp_resolution_out",
-      output_columns: Tuple[str] = (
-        "dx", "dy", "dz", "dtx", "dty", "dp",
-        "chi2PerDoF", "nDoF_f", "ghostProb"
-        ),
-      n_random: int = 128,
-      references: Tuple[str] = ("mcparticle_id", )
-      ):
+from ._defaults import default_lib_field
 
-    self._library = RemoteResource(url)
-    self._symbol = symbol
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._n_random = n_random
-    self._references = references
+@validate_arguments
+@dataclass(frozen=True)
+class Resolution:
+  library: Optional[str] = default_lib_field
+  symbol: Optional[str] = "resolution"
+  output_table: Optional[str] = "tmp_resolution_out"
+  output_columns: Optional[Tuple[str, ...]] = (
+    "dx", "dy", "dz", "dtx", "dty", "dp",
+    "chi2PerDoF", "nDoF_f", "ghostProb"
+    )
+  n_random: int = 128
+  references: Optional[Tuple[str, ...]] = ("mcparticle_id", )
+
 
   def query(self):
     return """
@@ -51,12 +48,12 @@ class Resolution:
 
   def __call__(self, db):
     return SQLamarr.GenerativePlugin(db,
-        self._library.file,
-        self._symbol,
+        self.library.file,
+        self.symbol,
         self.query(),
-        self._output_table,
-        self._output_columns,
-        self._n_random,
-        self._references,
+        self.output_table,
+        self.output_columns,
+        self.n_random,
+        self.references,
         )
 

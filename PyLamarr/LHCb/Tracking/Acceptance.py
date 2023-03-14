@@ -1,22 +1,19 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from pydantic import validate_arguments, Field
 from PyLamarr import RemoteResource
 import SQLamarr
 
-class Acceptance:
-  def __init__ (self,
-      url: str = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/"
-                 "models/lhcb.trk.2016MU.20230128.so",
-      symbol: str = "acceptance",
-      output_table: str = "tmp_acceptance_out",
-      output_columns: Tuple[str] = ("acceptance",),
-      references: Tuple[str] = ("mcparticle_id", )
-      ):
+from ._defaults import default_lib_field
 
-    self._library = RemoteResource(url)
-    self._symbol = symbol
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._references = references
+@validate_arguments
+@dataclass(frozen=True)
+class Acceptance:
+  library: RemoteResource = default_lib_field
+  symbol: str = "acceptance"
+  output_table: Optional[str] = "tmp_acceptance_out"
+  output_columns: Optional[Tuple[str, ...]] = ("acceptance",)
+  references: Optional[Tuple[str, ...]] = ("mcparticle_id", )
 
   def query(self):
     return """
@@ -46,11 +43,11 @@ class Acceptance:
 
   def __call__(self, db):
     return SQLamarr.Plugin(db,
-        self._library.file,
-        self._symbol,
+        self.library.file,
+        self.symbol,
         self.query(),
-        self._output_table,
-        self._output_columns,
-        self._references,
+        self.output_table,
+        self.output_columns,
+        self.references,
         )
 

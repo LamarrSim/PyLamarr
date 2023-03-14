@@ -8,13 +8,90 @@ from typing import Optional
 import requests
 
 class RemoteResource (BaseModel):
+  """Resource on the Internet, locally cached.
+  
+  # Remote Resource mechanism
+
+  Most of the parametrizations Lamarr relies on are committed and maintained in
+  remote repositories. The PyLamarr.RemoteResource class implements a simple
+  caching mechanism to download the remote parametrizations on demand in case they
+  are not available locally. A hash of the URL identifying the remote resource is
+  used to represent the local cache of the remote resource.
+  Note that in case the remote resource is updated without modifying its URL, 
+  the local cache is not automatically updated.
+
+
+  ### Example.
+  Consider the file `PrimaryVertexSmearing.db` encoding the parametrizations for
+  Primary Vertex reconstruction, and made available publicly here:
+  `https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/PrimaryVertex/PrimaryVertexSmearing.db`
+
+  The following snippet of code enables caching the file locally:
+  ```python
+  from PyLamarr import RemoteResource
+  url = ("https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/"
+         "PrimaryVertex/PrimaryVertexSmearing.db")
+
+  pv_params = RemoteResource(url)
+
+  # Now the file might not be available locally, but a lazy download is triggered
+  # when accessing its path:
+
+  import sqlite3
+  with sqlite3.connect(pv_params.file) as db:
+      # ... do something ...
+  ```
+
+  Now, in case the remote file is updated, it may be necessary to download the
+  updated version. This can be achieved forcing the download with:
+  ```python
+  pv_params.download(force=True)
+  ```
+
+  or, replacing the connection attempt in the previous example:
+  ```python
+  import sqlite3
+  with sqlite3.connect(pv_params.download(force=True).file) as db:
+      # ... do something ...
+  ```
+
+
+  ### Accessing local resources
+  A local resourcce can be encapsulated inside `RemoteResource` which is 
+  the expected format for most of the parametrization data in `PyLamarr`.
+
+  For example, if testing your local version of `MyPrimaryVertexSmearing.db`,
+  you can write
+  ```python
+  pv_params = RemoteResource("file://MyPrimaryVertexSmearing.db")
+
+  # Now the file might not be available locally, but a lazy download is triggered
+  # when accessing its path:
+
+  import sqlite3
+  with sqlite3.connect(pv_params.file) as db:
+      #...
+  ```
+
+  Note, however, that forcing the download of a local resource would raise an
+  Exception.
+
+
+  ### Implicit conversion from URL
+  Most of the parametrizations relying on external dependencies expect an 
+  instance of `RemoteResource` identifying the file to obtain the parametrization
+  from. An implicit cast from sring to `RemoteResource` enables passing directly 
+  a string with an URL (possibly pointing to a local file), which gets 
+  transparently converted into a `RemoteResource` instance and used in the file.
+  """
   remote_url: str
   local_filename: Optional[str] = None
   _file: Optional[str] = PrivateAttr()
 
   def __init__ (self, *args, **kwargs):
+    """@private Constructor performing input validation"""
     remote_url, *args = args
-    local_filename, *_ = args if len(args) else None, 
+    local_filename, *args = args if len(args) else None, 
     super().__init__(remote_url=remote_url, local_filename=local_filename)
 
     ## Supported protocols
@@ -47,10 +124,12 @@ class RemoteResource (BaseModel):
 
   @classmethod
   def __get_validators__ (cls):
+    """@private Get validators for implicit casting from URL by pydantic"""
     yield cls.validate
 
   @classmethod 
   def validate (cls, v):
+    """@private Implement implicit casting"""
     if isinstance(v, RemoteResource):
       return RemoteResource
     elif isinstance(v, str):
@@ -65,6 +144,16 @@ class RemoteResource (BaseModel):
     raise ValueError(f"Unexpected initializer {v} for RemoteResource")
 
   def download (self, force: bool = False):
+    """Download the remote resource is not available locally or if forced.
+    Can raise an exception if the download fails or upon attempts of downloading 
+    local resources (represented by protocol `file://`)
+
+    @param force: Force the download of the remote resource independently of 
+      the cache availability
+
+    @return Updated instance of `RemoteResource` (`self`)
+    """
+
     if os.path.exists(self._file) and not force:
       return self
 
@@ -81,6 +170,7 @@ class RemoteResource (BaseModel):
 
   @property 
   def file (self):
+    """@property Access the local file **path** downloading it if necessary."""
     self.download(force=False)
     logger = logging.getLogger(self.__class__.__name__)
     logger.debug(f"Accessing {self._file} as cached version of {self.remote_url}")

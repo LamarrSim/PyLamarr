@@ -1,40 +1,38 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from pydantic import validate_arguments
 from PyLamarr import RemoteResource
 import SQLamarr
 
-class Covariance:
-  def __init__ (self,
-      url: str = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/"
-                 "models/lhcb.trk.2016MU.20230128.so",
-      symbol: str = "covariance",
-      output_table: str = "tmp_covariance_out",
-      output_columns: Tuple[str] = (
-          "log_cov_ClosestToBeam_0_0",
-          "log_cov_ClosestToBeam_1_1",
-          "log_cov_ClosestToBeam_2_2",
-          "log_cov_ClosestToBeam_3_3",
-          "log_cov_ClosestToBeam_4_4",
-          "corr_ClosestToBeam_0_1",
-          "corr_ClosestToBeam_0_2",
-          "corr_ClosestToBeam_1_2",
-          "corr_ClosestToBeam_0_3",
-          "corr_ClosestToBeam_1_3",
-          "corr_ClosestToBeam_2_3",
-          "corr_ClosestToBeam_0_4",
-          "corr_ClosestToBeam_1_4",
-          "corr_ClosestToBeam_2_4",
-          "corr_ClosestToBeam_3_4"
-        ),
-      n_random: int = 128,
-      references: Tuple[str] = ("mcparticle_id", )
-      ):
+from ._defaults import default_lib_field
 
-    self._library = RemoteResource(url)
-    self._symbol = symbol
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._n_random = n_random
-    self._references = references
+
+@validate_arguments
+@dataclass
+class Covariance:
+  library: Optional[str] = default_lib_field
+  symbol: Optional[str] = "covariance"
+  output_table: Optional[str] = "tmp_covariance_out"
+  output_columns: Optional[Tuple[str, ...]] = (
+      "log_cov_ClosestToBeam_0_0",
+      "log_cov_ClosestToBeam_1_1",
+      "log_cov_ClosestToBeam_2_2",
+      "log_cov_ClosestToBeam_3_3",
+      "log_cov_ClosestToBeam_4_4",
+      "corr_ClosestToBeam_0_1",
+      "corr_ClosestToBeam_0_2",
+      "corr_ClosestToBeam_1_2",
+      "corr_ClosestToBeam_0_3",
+      "corr_ClosestToBeam_1_3",
+      "corr_ClosestToBeam_2_3",
+      "corr_ClosestToBeam_0_4",
+      "corr_ClosestToBeam_1_4",
+      "corr_ClosestToBeam_2_4",
+      "corr_ClosestToBeam_3_4"
+    )
+  n_random: Optional[int] = 128
+  references: Optional[Tuple[str, ...]] = ("mcparticle_id", )
+
 
   def query(self):
     return """
@@ -69,12 +67,12 @@ class Covariance:
 
   def __call__(self, db):
     return SQLamarr.GenerativePlugin(db,
-        self._library.file,
-        self._symbol,
+        self.library.file,
+        self.symbol,
         self.query(),
-        self._output_table,
-        self._output_columns,
-        self._n_random,
-        self._references,
+        self.output_table,
+        self.output_columns,
+        self.n_random,
+        self.references,
         )
 

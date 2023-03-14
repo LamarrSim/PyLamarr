@@ -1,24 +1,22 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
 from PyLamarr import RemoteResource
 import SQLamarr
 
-class Efficiency:
-  def __init__ (self,
-      url: str = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data/"
-                 "models/lhcb.trk.2016MU.20230128.so",
-      symbol: str = "efficiency",
-      output_table: str = "tmp_efficiency_out",
-      output_columns: Tuple[str] = (
-        "not_recoed", "long", "upstream", "downstream"
-        ),
-      references: Tuple[str] = ("mcparticle_id", )
-      ):
+from pydantic import validate_arguments
 
-    self._library = RemoteResource(url)
-    self._symbol = symbol
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._references = references
+from ._defaults import default_lib_field
+
+@validate_arguments
+@dataclass
+class Efficiency:
+  library: str = default_lib_field
+  symbol: str = "efficiency"
+  output_table: str = "tmp_efficiency_out"
+  output_columns: Tuple[str, ...] = (
+    "not_recoed", "long", "upstream", "downstream"
+    )
+  references: Tuple[str, ...] = ("mcparticle_id", )
 
   def query(self):
     return """
@@ -48,11 +46,11 @@ class Efficiency:
 
   def __call__(self, db):
     return SQLamarr.Plugin(db,
-        self._library.file,
-        self._symbol,
+        self.library.file,
+        self.symbol,
         self.query(),
-        self._output_table,
-        self._output_columns,
-        self._references,
+        self.output_table,
+        self.output_columns,
+        self.references,
         )
 

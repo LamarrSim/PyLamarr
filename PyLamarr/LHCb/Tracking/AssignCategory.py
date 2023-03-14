@@ -1,17 +1,17 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from pydantic import validate_arguments
+
 from PyLamarr import RemoteResource
 import SQLamarr
 
-class AssignCategory:
-  def __init__ (self,
-      output_table: str = "tmp_particles_recoed_as",
-      output_columns: Tuple[str] = ("mcparticle_id", "track_type"),
-      make_persistent: bool = True,
-      ):
 
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._make_persistent = make_persistent
+@validate_arguments
+@dataclass(frozen=True)
+class AssignCategory:
+  output_table: Optional[str] = "tmp_particles_recoed_as"
+  output_columns: Optional[Tuple[str, ...]] = ("mcparticle_id", "track_type")
+  make_persistent: Optional[bool] = True
 
   def query(self):
     return """
@@ -26,10 +26,10 @@ class AssignCategory:
 
   def __call__(self, db):
     return SQLamarr.TemporaryTable(db,
-        self._output_table,
-        self._output_columns,
+        self.output_table,
+        self.output_columns,
         self.query(),
-        self._make_persistent,
+        self.make_persistent,
         )
 
 

@@ -1,23 +1,24 @@
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from pydantic import validate_arguments
 from PyLamarr import RemoteResource
 import SQLamarr
 
+@validate_arguments
+@dataclass(frozen=True)
 class CovariancePostprocessing:
-  def __init__ (self,
-      output_table: str = "covariance",
-      output_columns: Tuple[str] = (
-        "cov00",
-        "cov01", "cov11",
-        "cov02", "cov12", "cov22",
-        "cov03", "cov13", "cov23", "cov33",
-        "cov04", "cov14", "cov24", "cov34", "cov44",
-        ),
-      make_persistent: bool = True,
-      ):
 
-    self._output_table = output_table
-    self._output_columns = output_columns
-    self._make_persistent = make_persistent
+  output_table: Optional[str] = "covariance"
+
+  output_columns: Optional[Tuple[str, ...]] = (
+    "cov00",
+    "cov01", "cov11",
+    "cov02", "cov12", "cov22",
+    "cov03", "cov13", "cov23", "cov33",
+    "cov04", "cov14", "cov24", "cov34", "cov44",
+    )
+
+  make_persistent: Optional[bool] = True
 
   def query(self):
     return """
@@ -61,10 +62,10 @@ class CovariancePostprocessing:
 
   def __call__(self, db):
     return SQLamarr.TemporaryTable(db,
-        self._output_table,
-        self._output_columns,
+        self.output_table,
+        self.output_columns,
         self.query(),
-        self._make_persistent,
+        self.make_persistent,
         )
 
 
