@@ -6,7 +6,6 @@ sys.path.append("../SQLamarr/python")
 from argparse import ArgumentParser
 import PyLamarr
 import logging
-import SQLamarr
 import time
 
 import pandas as pd 
@@ -35,8 +34,8 @@ data_pkg = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data"
 pvdb = PyLamarr.RemoteResource(f"{data_pkg}/PrimaryVertex/PrimaryVertexSmearing.db")
 
 pipeline = LHCb.BasePipeline([
-    ('PVFinder', SQLamarr.PVFinder),
-    ('MCParticleMaker', SQLamarr.MCParticleSelector),
+    ('PVFinder', PyLamarr.PVFinder),
+    ('MCParticleMaker', PyLamarr.MCParticleSelector),
     ('PVReco', LHCb.PVReconstruction(condition='2016_pp_MagUp')),
     ('TrkAcc', LHCb.Tracking.Acceptance()),
     ('TrkEff', LHCb.Tracking.Efficiency()),
@@ -54,4 +53,14 @@ from glob import glob
 filenames = glob("../SQLamarr/temporary_data/HepMC2-ascii/DSt_Pi.hepmc2/evt*.mc2")
 load_args = zip(filenames, [1]*len(filenames), range(len(filenames)))
 
-pipeline.execute(list(load_args), thread_id=0)
+#pipeline.execute(list(load_args), thread_id=0)
+with open("pipeline.xml", "w") as f:
+  pipeline.to_xml(f)
+
+with open("pipeline.xml") as f:
+  reloaded = LHCb.BasePipeline.read_xml(f)
+
+reloaded.sequence.append(("PrintStats", print_stats))
+print (reloaded.sequence)
+reloaded.execute(list(load_args), thread_id=0)
+

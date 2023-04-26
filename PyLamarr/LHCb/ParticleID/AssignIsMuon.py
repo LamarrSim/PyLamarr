@@ -3,12 +3,11 @@ from dataclasses import dataclass
 
 from pydantic import validate_arguments, validator
 
-from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import RemoteResource, Wrapper
 
 @validate_arguments
 @dataclass(frozen=True)
-class AssignIsMuon:
+class AssignIsMuon(Wrapper):
   ismuoneff_table: str
   output_table: str = "tmp_is_muon"
   output_columns: Tuple[str, ...] = ("mcparticle_id", "ismuoneff", "is_muon")
@@ -19,15 +18,18 @@ class AssignIsMuon:
     SELECT 
       mcparticle_id AS mcparticle_id,
       isMuonEff,
-      random_category(1-isMuonEff, isMuonEff) AS isMuon
+      random_category(1-isMuonEff) AS isMuon
     FROM {self.ismuoneff_table};
     """
 
-  def __call__(self, db):
-    return SQLamarr.TemporaryTable(db,
-        self.output_table,
-        self.output_columns,
-        self.query(),
-        self.make_persistent
+
+  implements: str = "TemporaryTable"
+  @property
+  def config(self):
+    return dict(
+        output_table=self.output_table,
+        outputs=self.output_columns,
+        query=self.query(),
+        make_persistent=self.make_persistent
         )
 

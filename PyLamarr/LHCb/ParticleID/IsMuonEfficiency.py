@@ -3,12 +3,11 @@ from dataclasses import dataclass
 
 from pydantic import validate_arguments, validator
 
-from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import RemoteResource, Wrapper
 
 @validate_arguments
 @dataclass(frozen=True)
-class IsMuonEfficiency:
+class IsMuonEfficiency(Wrapper):
   library: RemoteResource
   symbol: str
   output_table: str
@@ -18,7 +17,6 @@ class IsMuonEfficiency:
   track_type: Optional[int] = 3
   references: Optional[Tuple[str, ...]] = ( "mcparticle_id", )
   output_columns: Optional[Tuple[str, ...]] = ( "IsMuonEff", )
-
 
   def query(self):
     return f"""
@@ -38,15 +36,16 @@ class IsMuonEfficiency:
         abs(p.pid) == {self.abs_mcid};
     """
 
-
-  def __call__(self, db):
-    return SQLamarr.Plugin(db,
-        self.library.file,
-        self.symbol,
-        self.query(),
-        self.output_table,
-        self.output_columns,
-        self.references,
+  implements: str = "Plugin"
+  @property
+  def config(self):
+    return dict(
+        library_path=self.library.file,
+        function_name=self.symbol,
+        query=self.query(),
+        output_table=self.output_table,
+        outputs=self.output_columns,
+        references=self.references,
         )
 
 

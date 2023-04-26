@@ -2,27 +2,28 @@ from typing import Tuple, Optional
 from dataclasses import dataclass
 from pydantic import validate_arguments, Field
 from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import Wrapper
 
 from ._defaults import default_lib_field
 
+
 @validate_arguments
 @dataclass(frozen=True)
-class Acceptance:
-  library: RemoteResource = default_lib_field
-  symbol: str = "acceptance"
-  output_table: Optional[str] = "tmp_acceptance_out"
-  output_columns: Optional[Tuple[str, ...]] = ("acceptance",)
-  references: Optional[Tuple[str, ...]] = ("mcparticle_id", )
+class Acceptance(Wrapper):
+    library: RemoteResource = default_lib_field
+    symbol: str = "acceptance"
+    output_table: Optional[str] = "tmp_acceptance_out"
+    output_columns: Optional[Tuple[str, ...]] = ("acceptance",)
+    references: Optional[Tuple[str, ...]] = ("mcparticle_id",)
 
-  def query(self):
-    return """
+    def query(self):
+        return """
         SELECT 
           mcparticle_id,
           ov.x AS mc_x, 
           ov.y AS mc_y, 
           ov.z AS mc_z,
-          log10(norm2(p.px, p.py, p.pz)) AS mc_log10_p,
+          log(norm2(p.px, p.py, p.pz))/log(10.) AS mc_log10_p,
           p.px/p.pz AS mc_tx, 
           p.py/p.pz AS mc_ty,
           pseudorapidity(p.px, p.py, p.pz) AS mc_eta,
@@ -41,13 +42,15 @@ class Acceptance:
           propagation_charge(p.pid) <> 0.
           """
 
-  def __call__(self, db):
-    return SQLamarr.Plugin(db,
-        self.library.file,
-        self.symbol,
-        self.query(),
-        self.output_table,
-        self.output_columns,
-        self.references,
-        )
+    implements: str = "Plugin"
 
+    @property
+    def config(self):
+        return dict(
+            library_path=self.library.file,
+            function_name=self.symbol,
+            query=self.query(),
+            output_table=self.output_table,
+            outputs=self.output_columns,
+            references=self.references,
+        )

@@ -3,12 +3,11 @@ from dataclasses import dataclass
 
 from pydantic import validate_arguments, validator
 
-from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import RemoteResource, Wrapper
 
 @validate_arguments
 @dataclass(frozen=True)
-class GanPipeline:
+class GanPipeline (Wrapper):
   library: RemoteResource
   symbol: str
   output_table: str
@@ -29,7 +28,6 @@ class GanPipeline:
           # Global PID
           "PIDmu", "ProbNNmu"
       )
-
 
   def query(self):
     return f"""
@@ -52,16 +50,17 @@ class GanPipeline:
         abs(p.pid) == {self.abs_mcid};
     """
 
-
-  def __call__(self, db):
-    return SQLamarr.GenerativePlugin(db,
-        self.library.file,
-        self.symbol,
-        self.query(),
-        self.output_table,
-        self.output_columns,
-        self.n_random,
-        self.references,
+  implements: str = "GenerativePlugin"
+  @property 
+  def config(self):
+    return dict(
+        library_path=self.library.file,
+        function_name=self.symbol,
+        query=self.query(),
+        output_table=self.output_table,
+        outputs=self.output_columns,
+        nRandom=self.n_random,
+        references=self.references,
         )
 
 

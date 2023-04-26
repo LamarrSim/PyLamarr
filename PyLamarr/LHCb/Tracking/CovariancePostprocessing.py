@@ -2,26 +2,26 @@ from typing import Tuple, Optional
 from dataclasses import dataclass
 from pydantic import validate_arguments
 from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import Wrapper
+
 
 @validate_arguments
 @dataclass(frozen=True)
-class CovariancePostprocessing:
+class CovariancePostprocessing(Wrapper):
+    output_table: Optional[str] = "covariance"
 
-  output_table: Optional[str] = "covariance"
-
-  output_columns: Optional[Tuple[str, ...]] = (
-    "cov00",
-    "cov01", "cov11",
-    "cov02", "cov12", "cov22",
-    "cov03", "cov13", "cov23", "cov33",
-    "cov04", "cov14", "cov24", "cov34", "cov44",
+    output_columns: Optional[Tuple[str, ...]] = (
+        "cov00",
+        "cov01", "cov11",
+        "cov02", "cov12", "cov22",
+        "cov03", "cov13", "cov23", "cov33",
+        "cov04", "cov14", "cov24", "cov34", "cov44",
     )
 
-  make_persistent: Optional[bool] = True
+    make_persistent: Optional[bool] = True
 
-  def query(self):
-    return """
+    def query(self):
+        return """
       WITH shortcut AS (
           SELECT
             sqrt(exp(log_cov_ClosestToBeam_0_0)) AS sig0, 
@@ -60,13 +60,13 @@ class CovariancePostprocessing:
       FROM shortcut;
       """
 
-  def __call__(self, db):
-    return SQLamarr.TemporaryTable(db,
-        self.output_table,
-        self.output_columns,
-        self.query(),
-        self.make_persistent,
+    implements: str = "TemporaryTable"
+
+    @property
+    def config(self):
+        return dict(
+            output_table=self.output_table,
+            outputs=self.output_columns,
+            query=self.query(),
+            make_persistent=self.make_persistent,
         )
-
-
-

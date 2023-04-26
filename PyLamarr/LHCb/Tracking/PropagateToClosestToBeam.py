@@ -2,18 +2,18 @@ from typing import Tuple, Optional
 from dataclasses import dataclass
 from pydantic import validate_arguments
 
-from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import Wrapper
+
 
 @validate_arguments
 @dataclass(frozen=True)
-class PropagateToClosestToBeam:
-  output_table: Optional[str] = "tmp_closest_to_beam"
-  output_columns: Optional[Tuple[str, ...]] = ("mcparticle_id", "x", "y", "z")
-  make_persistent: Optional[bool] = True
+class PropagateToClosestToBeam(Wrapper):
+    output_table: Optional[str] = "tmp_closest_to_beam"
+    output_columns: Optional[Tuple[str, ...]] = ("mcparticle_id", "x", "y", "z")
+    make_persistent: Optional[bool] = True
 
-  def query(self):
-    return """
+    def query(self):
+        return """
         WITH ctb AS (
           SELECT 
             mcparticle_id,
@@ -35,13 +35,13 @@ class PropagateToClosestToBeam:
         FROM ctb;
       """
 
-  def __call__(self, db):
-    return SQLamarr.TemporaryTable(db,
-        self.output_table,
-        self.output_columns,
-        self.query(),
-        self.make_persistent,
+    implements: str = "TemporaryTable"
+
+    @property
+    def config(self):
+        return dict(
+            output_table=self.output_table,
+            outputs=self.output_columns,
+            query=self.query(),
+            make_persistent=self.make_persistent,
         )
-
-
-

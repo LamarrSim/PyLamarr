@@ -1,27 +1,26 @@
 from typing import Tuple, Optional
 from dataclasses import dataclass
 from pydantic import validate_arguments
-from PyLamarr import RemoteResource
-import SQLamarr
+from PyLamarr import RemoteResource, Wrapper
 
 from ._defaults import default_lib_field
 
+
 @validate_arguments
 @dataclass(frozen=True)
-class Resolution:
-  library: Optional[str] = default_lib_field
-  symbol: Optional[str] = "resolution"
-  output_table: Optional[str] = "tmp_resolution_out"
-  output_columns: Optional[Tuple[str, ...]] = (
-    "dx", "dy", "dz", "dtx", "dty", "dp",
-    "chi2PerDoF", "nDoF_f", "ghostProb"
+class Resolution(Wrapper):
+    library: RemoteResource = default_lib_field
+    symbol: Optional[str] = "resolution"
+    output_table: Optional[str] = "tmp_resolution_out"
+    output_columns: Optional[Tuple[str, ...]] = (
+        "dx", "dy", "dz", "dtx", "dty", "dp",
+        "chi2PerDoF", "nDoF_f", "ghostProb"
     )
-  n_random: int = 128
-  references: Optional[Tuple[str, ...]] = ("mcparticle_id", )
+    n_random: int = 128
+    references: Optional[Tuple[str, ...]] = ("mcparticle_id",)
 
-
-  def query(self):
-    return """
+    def query(self):
+        return """
         SELECT 
           p.mcparticle_id,
           ctb.x AS mc_x, 
@@ -29,7 +28,7 @@ class Resolution:
           ctb.z AS mc_z, 
           p.px/p.pz AS mc_tx, 
           p.py/p.pz AS mc_ty,
-          log10(norm2(p.px, p.py, p.pz)) AS mc_log10_p,
+          log(norm2(p.px, p.py, p.pz))/log(10.) AS mc_log10_p,
           abs(p.pid) == 11 AS mc_is_e,
           abs(p.pid) == 13 AS mc_is_mu,
           (abs(p.pid) = 211 OR abs(p.pid) = 321 OR abs(p.pid) = 2212) AS is_h,
@@ -46,14 +45,16 @@ class Resolution:
           recguess.track_type IN (3, 4, 5);
           """
 
-  def __call__(self, db):
-    return SQLamarr.GenerativePlugin(db,
-        self.library.file,
-        self.symbol,
-        self.query(),
-        self.output_table,
-        self.output_columns,
-        self.n_random,
-        self.references,
-        )
+    implements: str = "GenerativePlugin"
 
+    @property
+    def config(self):
+        return dict(
+            library_path=self.library.file,
+            function_name=self.symbol,
+            query=self.query(),
+            output_table=self.output_table,
+            outputs=self.output_columns,
+            nRandom=self.n_random,
+            references=self.references,
+        )
