@@ -40,7 +40,7 @@ class PVReconstruction(Wrapper):
     def config(self):
         """@private Call method"""
         return dict(
-            file_name=self.library,
+            file_name=self.library.file,
             table_name=self.table,
             condition=self.condition
         )

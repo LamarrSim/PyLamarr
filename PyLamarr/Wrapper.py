@@ -31,9 +31,13 @@ class Wrapper:
         raise AttributeError("Class derived from Wrapper does not implement `implements` property")
 
     def get_config(self):
-        if hasattr(self, "config"):
-            return getattr(self, "config")
-        raise AttributeError("Class derived from Wrapper does not implement `config` property")
+        if not hasattr(self, "config"):
+          raise AttributeError("Class derived from Wrapper does not implement `config` property")
+
+        if 'query' in self.config.keys() and len(self.config['query']) > 16384:
+          raise ValueError("Length of the query [{self.__class__.__name__}] exceeds maximum length of 16384 bytes") 
+
+        return getattr(self, "config")
 
 
 

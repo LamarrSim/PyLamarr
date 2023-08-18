@@ -7,6 +7,7 @@ from .PropagateToClosestToBeam import PropagateToClosestToBeam
 from .Resolution import Resolution
 from .Covariance import Covariance
 from .CovariancePostprocessing import CovariancePostprocessing
+from .ParticleMaker import ParticleMaker
 
 from ._defaults import default_lib
 from .configure_pipeline import configure_pipeline as configure_pipeline_generic

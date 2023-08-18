@@ -1,5 +1,5 @@
 import numpy as np 
-from typing import List
+from typing import List, Union
 
 from PyLamarr.loaders import PandasLoader
 
@@ -24,7 +24,8 @@ class UprootLoader:
             input_file: str, 
             tables: List[str], 
             collector: str = 'LamarrCollector', 
-            batch_id_var: str = 'batch_id'
+            batch_id_var: str = 'batch_id',
+            max_rows: Union[int, None] = None
             ):
 
         import uproot 
@@ -36,18 +37,18 @@ class UprootLoader:
         self._db = None
         root_dir = uproot.open(input_file)[collector]
 
-        self._batches = np.unique(
-                root_dir[tables[0]].arrays(self.bid_var, library='np')[self.bid_var]
+        self._batch_codes = np.unique(
+                root_dir[tables[0]].arrays(self.bid_var, library='np', entry_stop=max_rows)[self.bid_var]
                 )
 
         self._dataframe = {
-                n: pd.DataFrame(root_dir[n].arrays(library='np')) for n in self.tables
+                n: pd.DataFrame(root_dir[n].arrays(library='np', entry_stop=max_rows)) for n in self.tables
                 } 
 
 
     @property 
     def batches(self):
-        return np.arange(len(self._batches))
+        return np.arange(len(self._batch_codes))
 
 
     def __call__(self, db):
@@ -63,7 +64,7 @@ class UprootLoader:
         with self._db.connect() as c:
             for name, df in self._dataframe.items():
                 (
-                        df[df[self.bid_var] == self.batches[batch]]
+                        df[df[self.bid_var] == self._batch_codes[batch]]
                         .drop(columns=[self.bid_var])
                         .to_sql(name, c, if_exists='append', index=False)
                 )

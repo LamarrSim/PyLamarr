@@ -3,7 +3,9 @@ from . import ( Acceptance,
                 AssignCategory, 
                 PropagateToClosestToBeam, 
                 Resolution, 
-                Covariance
+                Covariance,
+                CovariancePostprocessing,
+                ParticleMaker
                 )
 
 def configure_pipeline(library: str):
@@ -14,4 +16,6 @@ def configure_pipeline(library: str):
         ('Propagate2CTB',  PropagateToClosestToBeam()),
         ('TrkResolution',  Resolution(library=library)),
         ('TrkCovariance',  Covariance(library=library)),
+        ('TrkCovPostPro',  CovariancePostprocessing()),
+        ('Maker',          ParticleMaker()),
         )
