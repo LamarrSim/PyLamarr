@@ -3,6 +3,7 @@ from PyLamarr.Wrapper import Wrapper, GenericWrapper
 from PyLamarr.RemoteResource import RemoteResource
 from PyLamarr.function import function, method
 from PyLamarr.Concatenate import Concatenate
+from PyLamarr import loaders
 
 PVFinder = GenericWrapper(implements="PVFinder")
 MCParticleSelector = GenericWrapper(implements="MCParticleSelector")
