@@ -6,6 +6,7 @@ import sys
 import threading
 import sqlite3
 from PyLamarr import GenericWrapper
+from PyLamarr.RemoteResource import RemoteResource as RemoteRes
 
 from typing import List, Tuple, Any, Union, Dict
 
@@ -160,8 +161,12 @@ class BasePipeline:
                         config[cfg_node.attrib['key']] = cfg_node.text
                     elif cfg_node.attrib['type'] == 'seq':
                         config[cfg_node.attrib['key']] = cfg_node.text.split(";")
+                    elif cfg_node.attrib['type'] == 'url':
+                        config[cfg_node.attrib['key']] = RemoteRes(cfg_node.text)
                     else:
-                        raise NotImplementedError(f"Unexpected type {cfg_node.attrib['key']}")
+                        raise NotImplementedError(
+                            f"Unexpected type {cfg_node.attrib['type']} for {cfg_node.attrib['key']}"
+                            )
 
             algs.append((step_name, GenericWrapper(implements=alg_type, config=config)))
 

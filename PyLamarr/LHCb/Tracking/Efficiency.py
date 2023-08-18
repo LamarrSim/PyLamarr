@@ -49,7 +49,7 @@ class Efficiency(Wrapper):
     @property
     def config(self):
         return dict(
-            library_path=self.library.file,
+            library_path=self.library,
             function_name=self.symbol,
             query=self.query(),
             output_table=self.output_table,
