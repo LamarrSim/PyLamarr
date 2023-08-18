@@ -43,8 +43,8 @@ pipeline = LHCb.BasePipeline([
     ('Propagate2CTB', LHCb.Tracking.PropagateToClosestToBeam()),
     ('TrkResolution', LHCb.Tracking.Resolution()),
     ('TrkCovariance', LHCb.Tracking.Covariance()),
-    *LHCb.ParticleID.configure_pipeline(), 
-    ('PrintStats', print_stats),
+    # *LHCb.ParticleID.configure_pipeline(), 
+    # ('PrintStats', print_stats),
     ],
     batch=5,
     )
@@ -60,7 +60,7 @@ with open("pipeline.xml", "w") as f:
 with open("pipeline.xml") as f:
   reloaded = LHCb.BasePipeline.read_xml(f)
 
-reloaded.sequence.append(("PrintStats", print_stats))
+#reloaded.sequence.append(("PrintStats", print_stats))
 print (reloaded.sequence)
 reloaded.execute(list(load_args), thread_id=0)
 
