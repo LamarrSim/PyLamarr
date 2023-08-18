@@ -6,13 +6,18 @@ from typing import Dict, Any
 from pydantic import validate_arguments
 import ctypes
 
+from PyLamarr.RemoteResource import RemoteResource
+
 
 @dataclass(frozen=True)
 class Wrapper:
     def __call__(self, db):
         import SQLamarr
         try:
-            return getattr(SQLamarr, self.get_imp())(db, **self.get_config())
+            config = {k: v.file if isinstance(v, RemoteResource) else v 
+                      for k, v in self.get_config().items()}
+
+            return getattr(SQLamarr, self.get_imp())(db, **config)
         except (TypeError, ctypes.AttributeError) as e:
             logging.getLogger("Wrapper").error(
                 f"Error while configuring {self.__class__.__name__} "
@@ -40,7 +45,11 @@ class Wrapper:
         )
 
         for k, v in self.config.items():
-            if isinstance(v, (list, tuple, set)):
+            print ("#=#=#=#=")
+            print (k, v, type(v))
+            if isinstance(v, RemoteResource):
+                e3.SubElement(node, "CONFIG", key=k, type='url').text = v.remote_url
+            elif isinstance(v, (list, tuple, set)):
                 e3.SubElement(node, "CONFIG", key=k, type='seq').text = ";".join(v)
             else:
                 e3.SubElement(node, "CONFIG", key=k, type='str').text = str(v)
