@@ -17,15 +17,15 @@ class PropagateToClosestToBeam(Wrapper):
         WITH ctb AS (
           SELECT 
             mcparticle_id,
-            z_closest_to_beam(ov.x, ov.y, ov.z, p.px/p.pz, p.py/p.pz) AS z,
-            ov.x AS x0,
-            ov.y AS y0,
-            ov.z AS z0,
+            z_closest_to_beam(gv.x, gv.y, gv.z, p.px/p.pz, p.py/p.pz) AS z,
+            gv.x AS x0,
+            gv.y AS y0,
+            gv.z AS z0,
             p.px/p.pz AS tx,
             p.py/p.pz AS ty
           FROM MCParticles AS p
-          INNER JOIN MCVertices AS ov
-            ON p.production_vertex = ov.mcvertex_id
+          JOIN GenParticles AS gp ON gp.genparticle_id == p.genparticle_id
+          JOIN GenVertices as gv ON gp.production_vertex == gv.genvertex_id
         )
         SELECT 
           mcparticle_id,

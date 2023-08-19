@@ -25,6 +25,7 @@ class ParticleMaker(Wrapper):
             res.chi2PerDoF, res.nDoF_f, res.ghostProb
           FROM tmp_particles_recoed_as AS reco
           LEFT JOIN tmp_resolution_out AS res ON reco.mcparticle_id == res.mcparticle_id
+          WHERE reco.track_type != 0
           """
 
     implements: str = "TemporaryTable"
