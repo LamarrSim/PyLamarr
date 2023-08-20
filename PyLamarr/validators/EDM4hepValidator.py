@@ -23,17 +23,25 @@ SQLITE_MASTER_QUERY = """
 
 class EDM4hepValidator:
     def __init__ (self, 
-          output_stream: io.TextIOWrapper = sys.stdout,
+          output_stream: Union[str, io.TextIOWrapper] = sys.stdout,
           edm4hep_yaml: Union[str, RemoteResource] = DEFAULT_EDM4HEP_YAML,
+          sql_edm_yaml: Union[str, io.TextIOWrapper] = open('sql_edm.yaml', 'w'),
         ):
         if isinstance(edm4hep_yaml, str):
             edm4hep_yaml = RemoteResource(edm4hep_yaml)
+
+        if isinstance(output_stream, str): 
+            output_stream = open(output_stream, "w")
+
+        if isinstance(sql_edm_yaml, str): 
+            sql_edm_yaml = open(sql_edm_yaml, "w")
 
         with open(edm4hep_yaml.file) as input_file:
             loaded_yaml = input_file.read()
 
         self.config = self.initialize_config(loaded_yaml)
         self.batch_dfs = []
+        self.sql_edm_yaml = sql_edm_yaml
 
     @staticmethod
     def initialize_config(loaded_yaml):
@@ -163,6 +171,18 @@ class EDM4hepValidator:
                       f"Found in {len(found_in_batches)}/{len(all_batches)}")
                 else:
                     self.report_row(expected_table, "Found")
+
+        try:
+            import yaml as output_fmt
+        except ImportError:
+            import json as output_fmt
+
+        report = {}
+        for actual_table, acdf in df.groupby('table'):
+            report[actual_table] = np.unique(acdf.member_name).tolist()
+
+        output_fmt.dump(report, self.sql_edm_yaml)
+
 
                 
 

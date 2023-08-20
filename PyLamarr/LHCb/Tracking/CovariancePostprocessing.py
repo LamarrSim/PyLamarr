@@ -11,6 +11,7 @@ class CovariancePostprocessing(Wrapper):
     output_table: Optional[str] = "covariance"
 
     output_columns: Optional[Tuple[str, ...]] = (
+        "mcparticle_id",
         "cov00",
         "cov01", "cov11",
         "cov02", "cov12", "cov22",
@@ -24,6 +25,7 @@ class CovariancePostprocessing(Wrapper):
         return """
       WITH shortcut AS (
           SELECT
+            mcparticle_id,
             sqrt(exp(log_cov_ClosestToBeam_0_0)) AS sig0, 
             sqrt(exp(log_cov_ClosestToBeam_1_1)) AS sig1, 
             sqrt(exp(log_cov_ClosestToBeam_2_2)) AS sig2, 
@@ -42,6 +44,7 @@ class CovariancePostprocessing(Wrapper):
           FROM tmp_covariance_out
         )
       SELECT
+        mcparticle_id,
         sig0 * sig0,
         cor01 * sig0 * sig1, 
         sig1 * sig1,

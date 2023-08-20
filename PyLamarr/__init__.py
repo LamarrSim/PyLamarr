@@ -1,5 +1,5 @@
 from PyLamarr._logger import configure_logger
-from PyLamarr.Wrapper import Wrapper, GenericWrapper
+from PyLamarr.Wrapper import Wrapper, GenericWrapper, persistent_table, custom_query
 from PyLamarr.RemoteResource import RemoteResource
 from PyLamarr.function import function, method
 from PyLamarr.Concatenate import Concatenate
