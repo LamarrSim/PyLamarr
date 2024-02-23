@@ -18,10 +18,10 @@ def concat_outputs (name, algos):
 
 def configure_pipeline(library: str):
   ismuon_pipeline = [
-      ('MuIsMuonEff', IsMuonEff(library, 'IsMuonMuon', 'tmp_ismuon_mu', 13)),
-      ('PiIsMuonEff', IsMuonEff(library, 'IsMuonPion', 'tmp_ismuon_pi', 211)),
-      ('KIsMuonEff', IsMuonEff(library, 'IsMuonKaon', 'tmp_ismuon_k', 321)),
-      ('PIsMuonEff', IsMuonEff(library, 'IsMuonProton', 'tmp_ismuon_p', 2212)),
+      ('MuIsMuonEff', IsMuonEff(library, 'isMuon_muon_pipe', 'tmp_ismuon_mu', 13)),
+      ('PiIsMuonEff', IsMuonEff(library, 'isMuon_pion_pipe', 'tmp_ismuon_pi', 211)),
+      ('KIsMuonEff', IsMuonEff(library, 'isMuon_kaon_pipe', 'tmp_ismuon_k', 321)),
+      ('PIsMuonEff', IsMuonEff(library, 'isMuon_proton_pipe', 'tmp_ismuon_p', 2212)),
       ]
   ismuon_pipeline.append(concat_outputs('ismuoneff', [a for _, a in ismuon_pipeline]))
   ismuon_pipeline.append(('AssignIsMuon', AssignIsMuon('ismuoneff')))
@@ -29,13 +29,13 @@ def configure_pipeline(library: str):
 
   gan_pipeline = [
     ("MuonPidPipe", 
-      GanPipeline(library, "muon_pipe", "tmp_pid_mu", 13, ismuon_tab)),
+      GanPipeline(library, "full_muon_pipe", "tmp_pid_mu", 13, ismuon_tab)),
     ("PionPidPipe", 
-      GanPipeline(library, "pion_pipe", "tmp_pid_pi", 211, ismuon_tab)),
+      GanPipeline(library, "full_pion_pipe", "tmp_pid_pi", 211, ismuon_tab)),
     ("KaonPidPipe", 
-      GanPipeline(library, "kaon_pipe", "tmp_pid_k", 321, ismuon_tab)),
+      GanPipeline(library, "full_kaon_pipe", "tmp_pid_k", 321, ismuon_tab)),
     ("ProtonPidPipe", 
-      GanPipeline(library, "proton_pipe", "tmp_pid_p", 2212, ismuon_tab)),
+      GanPipeline(library, "full_proton_pipe", "tmp_pid_p", 2212, ismuon_tab)),
   ]
   gan_pipeline.append(concat_outputs('pid', [a for _, a in gan_pipeline]))
 

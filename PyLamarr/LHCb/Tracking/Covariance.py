@@ -37,7 +37,6 @@ class Covariance(Wrapper):
         return """
             SELECT 
               p.mcparticle_id AS mcparticle_id,
-              p.mcparticle_id AS mcparticle_id_input,
               ctb.x AS mc_x, 
               ctb.y AS mc_y, 
               ctb.z AS mc_z, 

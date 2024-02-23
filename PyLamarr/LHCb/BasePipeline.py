@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as e3
+import os
 import itertools
 import PyLamarr
 import logging
@@ -18,6 +19,7 @@ class BasePipeline:
                  batch=1,
                  dbfile_fmt="file:/tmp/lamarr.{thread:016x}.db?cache=shared",
                  clean_before_loading=True,
+                 clean_after_finishing=True,
                  ):
         self.logger = logging.getLogger(self.__class__.__name__)
         PyLamarr.configure_logger()
@@ -43,6 +45,7 @@ class BasePipeline:
         self._batch = batch
         self._dbfile_fmt = dbfile_fmt
         self._clean_before_loading = clean_before_loading
+        self._clean_after_finishing = clean_after_finishing
 
     @property
     def default_sequence(self):
@@ -109,7 +112,9 @@ class BasePipeline:
             make_algo(db) for _, make_algo in self.sequence
         ])
 
-        self.logger.info(f"Algorithms: {', '.join(name for name, _ in self.sequence)}")
+        self.logger.info(f"Algorithms:")
+        for iAlg, (name, _) in enumerate(self.sequence, 1):
+          self.logger.info(f"  {iAlg:>2d}. {name}")
 
         for batch in self._batched(load_args, self.batch):
             if self._clean_before_loading:
@@ -129,6 +134,17 @@ class BasePipeline:
 
             self.logger.debug(f"Executing pipeline on a batch of {len(batch)}")
             pipeline.execute()
+
+        if self._clean_after_finishing:
+            if parsed_fmt.startswith("file:"):
+                if "mode=memory" not in parsed_fmt:
+                    if '?' in parsed_fmt:
+                        os.remove(parsed_fmt[len('file:'):parsed_fmt.index('?')])
+                    else:
+                        os.remove(parsed_fmt[len('file:'):])
+            else:
+                os.remove(parsed_fmt)
+
 
     def to_xml(self, file_like) -> None:
         root = e3.Element("pipeline", batch=str(self.batch))

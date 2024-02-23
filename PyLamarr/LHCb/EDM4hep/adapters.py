@@ -3,16 +3,17 @@ from particle import Particle
 
 
 @PyLamarr.persistent_table((
-    'eventNumber', 'runNumber', 'timeStamp', 'weight'
+   'event_id', 'eventNumber', 'runNumber', 'timeStamp', 'weight'
 ))
 def EventHeader():
     """
       Event Header. Additional parameters are assumed to go into the metadata tree.
     """
-    return "SELECT evt_number, run_number, 0, 0 FROM DataSources;"
+    return "SELECT datasource_id, evt_number, run_number, 0, 0 FROM DataSources;"
 
 
 @PyLamarr.persistent_table((
+    "event_id",
     "mcparticle_id",
     "PDG",
     "generatorStatus",
@@ -45,6 +46,7 @@ def MCParticle():
     """
     return """
     SELECT
+      gev.datasource_id           AS event_id,
       mcp.mcparticle_id           AS mcparticle_id,
       mcp.pid                     AS pdg,
       gp.status                   AS generator_status,
@@ -68,6 +70,8 @@ def MCParticle():
       ON gp.production_vertex == ov.genvertex_id
     LEFT JOIN GenVertices AS end
       ON gp.end_vertex == end.genvertex_id
+    LEFT JOIN GenEvents AS gev
+      ON gp.genevent_id == gev.genevent_id
     """
 
 
@@ -110,7 +114,7 @@ def MCParticle__daughters__MCParticle():
 
 
 @PyLamarr.persistent_table((
-  'particle_id', 'type', 'PDG', 'algorithmType', 'likelihood'
+  'event_id', 'particle_id', 'type', 'PDG', 'algorithmType', 'likelihood'
   ))
 def ParticleID():
   """
@@ -129,31 +133,33 @@ def ParticleID():
      - 100: CombinedDLL wrt pion hypothesis
      - 110: ProbNN
   """
-  return [
-    "SELECT mcparticle_id,   0,  13, 0, ismuoneff FROM tmp_is_muon",
-    "SELECT mcparticle_id,  10,  13, 1, is_muon FROM tmp_is_muon",
-    "SELECT mcparticle_id,  20,   11, 2, RichDLLe    FROM pid",
-    "SELECT mcparticle_id,  20,   13, 2, RichDLLmu   FROM pid",
-    "SELECT mcparticle_id,  20,  211, 2, 0           FROM pid",
-    "SELECT mcparticle_id,  20,  321, 2, RichDLLK    FROM pid",
-    "SELECT mcparticle_id,  20, 2212, 2, RichDLLp    FROM pid",
-    "SELECT mcparticle_id,  30,   13, 2, MuonMuLL    FROM pid",
-    "SELECT mcparticle_id,  30, 2212, 2, MuonBkgLL   FROM pid",
-    "SELECT mcparticle_id, 100,   11, 2, PIDe        FROM pid",
-    "SELECT mcparticle_id, 100,   13, 2, PIDmu       FROM pid",
-    "SELECT mcparticle_id, 100,  211, 2,  0          FROM pid",
-    "SELECT mcparticle_id, 100,  321, 2, PIDK        FROM pid",
-    "SELECT mcparticle_id, 100, 2212, 2, PIDp        FROM pid",
-    "SELECT mcparticle_id, 110,   11, 2, ProbNNe     FROM pid",
-    "SELECT mcparticle_id, 110,   13, 2, ProbNNmu    FROM pid",
-    "SELECT mcparticle_id, 110,  211, 2, ProbNNpi    FROM pid",
-    "SELECT mcparticle_id, 110,  321, 2, ProbNNk     FROM pid",
-    "SELECT mcparticle_id, 110, 2212, 2, ProbNNp     FROM pid",
-    ]
+  join_clause = " JOIN MCParticle AS mcp ON mcp.mcparticle_id=t.mcparticle_id"
+  return [stmt + join_clause 
+      for stmt in [
+    "SELECT mcp.event_id, t.mcparticle_id,   0,  13, 0, ismuoneff FROM tmp_is_muon AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  10,  13, 1, is_muon FROM tmp_is_muon AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  20,   11, 2, RichDLLe    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  20,   13, 2, RichDLLmu   FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  20,  211, 2, 0           FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  20,  321, 2, RichDLLK    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  20, 2212, 2, RichDLLp    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  30,   13, 2, MuonMuLL    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id,  30, 2212, 2, MuonBkgLL   FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 100,   11, 2, PIDe        FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 100,   13, 2, PIDmu       FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 100,  211, 2,  0          FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 100,  321, 2, PIDK        FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 100, 2212, 2, PIDp        FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 110,   11, 2, ProbNNe     FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 110,   13, 2, ProbNNmu    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 110,  211, 2, ProbNNpi    FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 110,  321, 2, ProbNNk     FROM pid AS t",
+    "SELECT mcp.event_id, t.mcparticle_id, 110, 2212, 2, ProbNNp     FROM pid AS t",
+    ]]
 
 
 @PyLamarr.persistent_table((
-    'track_id', 'mcparticle_id', 'type', 'chi2', 'ndf', 'ghostProb',
+    'event_id', 'track_id', 'mcparticle_id', 'type', 'chi2', 'ndf', 'ghostProb',
     # 'dEdx', 'dEdxError', 'radiusOfInnermostHit',
   ))
 def Track():
@@ -162,17 +168,20 @@ def Track():
   """
   return """
     SELECT
+      mcp.event_id AS event_id,
       reco.mcparticle_id AS track_id,
       reco.mcparticle_id AS mcparticle_id,
       reco.track_type AS track_type,
       res.chi2PerDoF * floor(res.nDoF_f), floor(res.nDoF_f), res.ghostProb
     FROM tmp_particles_recoed_as AS reco
     LEFT JOIN tmp_resolution_out AS res ON reco.mcparticle_id == res.mcparticle_id
+    LEFT JOIN MCParticle AS mcp ON mcp.mcparticle_id == res.mcparticle_id
     WHERE reco.track_type != 0
   """
 
 
 @PyLamarr.persistent_table((
+  'event_id',
   'track_id',
   'location',
   # 'D0',   # transverse impact parameter
@@ -187,6 +196,7 @@ def Track():
   'slope_x',
   'slope_y',
   'momentum',
+  'qOverP',
   'covMatrix_00',
   'covMatrix_01',
   'covMatrix_02',
@@ -222,14 +232,16 @@ def LHCbTrackState():
   """
   return """
   SELECT
+    gev.datasource_id AS event_id,
     mcp.mcparticle_id,
     1 AS location,
     ctb.x + res.dx AS referencePoint_x,
     ctb.y + res.dy AS referencePoint_y,
     ctb.z + res.dz AS referencePoint_z,
     (mcp.px / mcp.pz) + res.dtx AS slope_x,
-    (mcp.px / mcp.pz) + res.dty AS slope_y,
+    (mcp.py / mcp.pz) + res.dty AS slope_y,
     norm2(mcp.px, mcp.py, mcp.pz) + res.dp AS momentum,
+    propagation_charge(mcp.pid) / (norm2(mcp.px, mcp.py, mcp.pz) + res.dp) AS qOverP,
     cov.cov00,
     cov.cov01,
     cov.cov02,
@@ -254,12 +266,41 @@ def LHCbTrackState():
       ON cov.mcparticle_id == reco.mcparticle_id
     LEFT JOIN tmp_closest_to_beam AS ctb
       ON ctb.mcparticle_id == reco.mcparticle_id
+    LEFT JOIN GenEvents AS gev
+      ON gev.genevent_id == mcp.genevent_id
     WHERE reco.track_type != 0
 
   """
 
 
 @PyLamarr.persistent_table((
+  'event_id',
+  'vertex_id',
+  'is_primary',  ## N.B. 'primary' is a reserved keyword in SQL
+  'time',
+#  'chi2',
+#  'probability',
+  'position_x',
+  'position_y',
+  'position_z',
+  ))
+def MCVertex():
+  return """
+    SELECT 
+      gev.datasource_id AS event_id,
+      v.mcvertex_id AS vertex_id,
+      true AS is_primary,
+      v.t AS time,
+      v.x AS position_x,
+      v.y AS position_y,
+      v.z AS position_z
+    FROM MCVertices AS v
+    JOIN GenEvents AS gev
+      ON gev.genevent_id == v.genevent_id
+  """
+
+@PyLamarr.persistent_table((
+  'event_id',
   'vertex_id',
   'is_primary',  ## N.B. 'primary' is a reserved keyword in SQL
   'time',
@@ -272,28 +313,32 @@ def LHCbTrackState():
   'covMatrix_yx',
   'covMatrix_zx',
   'covMatrix_yy',
-  'covMatrix_yz',
+  'covMatrix_zy',
   'covMatrix_zz',
   ))
 def Vertex():
   return """
     SELECT 
-      mcvertex_id AS vertex_id,
+      gev.datasource_id AS event_id,
+      v.mcvertex_id AS vertex_id,
       true AS is_primary,
-      t AS time,
-      x AS position_x,
-      y AS position_y,
-      z AS position_z,
-      1/sigma_x/sigma_x AS cov_xx,
+      v.t AS time,
+      v.x AS position_x,
+      v.y AS position_y,
+      v.z AS position_z,
+      v.sigma_x*v.sigma_x AS cov_xx,
       0 AS cov_yx,
       0 AS cov_zx,
-      1/sigma_y/sigma_y AS cov_yy,
+      v.sigma_y*v.sigma_y AS cov_yy,
       0 AS cov_zy,
-      1/sigma_z/sigma_z AS cov_zz
-    FROM Vertices
+      v.sigma_z*v.sigma_z AS cov_zz
+    FROM Vertices AS v
+    JOIN GenEvents AS gev
+      ON gev.genevent_id == v.genevent_id
   """
 
 @PyLamarr.persistent_table((
+  'event_id',
   'particle_id',
   'mcparticle_id',
   'PDG',
@@ -323,6 +368,7 @@ def Vertex():
 def ReconstructedParticle():
   return [f"""
     SELECT
+      gev.datasource_id AS event_id,
       NULL AS particle_id,
       mcp.mcparticle_id AS mcparticle_id,
       {pdg}*propagation_charge(mcp.pid) AS PDG,
@@ -332,17 +378,17 @@ def ReconstructedParticle():
         POW(norm2(mcp.px, mcp.py, mcp.pz) + res.dp, 2), 
         0.5) AS energy,
       slopes_to_cartesian(0,
-          norm2(mcp.px, mcp.py, mcp.pz) + res.dp,
+          abs(norm2(mcp.px, mcp.py, mcp.pz) + res.dp),
           mcp.px/mcp.pz + res.dp,
           mcp.py/mcp.pz + res.dp
           ) AS momentum_x,
       slopes_to_cartesian(1,
-          norm2(mcp.px, mcp.py, mcp.pz) + res.dp,
+          abs(norm2(mcp.px, mcp.py, mcp.pz) + res.dp),
           mcp.px/mcp.pz + res.dp,
           mcp.py/mcp.pz + res.dp
           ) AS momentum_y,
       slopes_to_cartesian(2, 
-          norm2(mcp.px, mcp.py, mcp.pz) + res.dp,
+          abs(norm2(mcp.px, mcp.py, mcp.pz) + res.dp),
           mcp.px/mcp.pz + res.dp,
           mcp.py/mcp.pz + res.dp
           ) AS momentum_z,
@@ -358,6 +404,9 @@ def ReconstructedParticle():
       ON ctb.mcparticle_id == trk.mcparticle_id
     LEFT JOIN tmp_resolution_out AS res
       ON res.mcparticle_id == trk.mcparticle_id
+    LEFT JOIN GenEvents AS gev
+      ON gev.genevent_id == mcp.genevent_id
+
     """ for pdg in (-11, -13, 211, 321, 2212)]
 
 

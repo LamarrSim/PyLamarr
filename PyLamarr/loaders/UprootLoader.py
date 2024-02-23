@@ -7,7 +7,7 @@ class UprootLoader:
     """
     Ease loading nTuples generated with Gaussino into the SQLite 
     event model of Lamarr.
-    As the other python data loaders, PandasLoader should be configured in the 
+    As the other python data loaders, UprootLoader should be configured in the 
     constructor.
     The configured object is then called during the event loop to 
     pass the updated connection to the SQLamarr.SQLite3DB instance.

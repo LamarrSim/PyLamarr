@@ -16,7 +16,7 @@ class GanPipeline (Wrapper):
   particle_table: Optional[str] = "MCParticles"
   track_table: Optional[str] = "tmp_particles_recoed_as"
   track_type: Optional[int] = 3
-  n_random: Optional[int] = 64
+  n_random: Optional[int] = 256
   references: Optional[Tuple[str, ...]] = ( "mcparticle_id", "isMuon")
   output_columns: Optional[Tuple[str, ...]] = (
           # Rich

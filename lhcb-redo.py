@@ -30,31 +30,44 @@ if args.veryverbose:
 def print_stats (db):
   df = pd.read_sql_query("SELECT * FROM sqlite_master WHERE type == 'table'", db)
   print (df)
+  print(pd.read_sql_query("SELECT COUNT(*) AS numberOfTracks FROM Track", db))
 
 loader = PyLamarr.loaders.UprootLoader(
-            "/pclhcb06/landerli/LamarrOnGaussino/lhcb-gaussino/Today/Gaussino/LamarrExample-1kev.root",
-            tables=('MCVertices', 'DataSources', 'MCParticles', 'GenVertices', 'GenParticles'),
+            "/pclhcb06/landerli/LamarrOnGaussino/lhcb-gaussino/Today/Gaussino/LamarrExample.root",
+            tables=('MCVertices', 'DataSources', 'MCParticles', 'GenVertices', 'GenParticles', 'GenEvents'),
         )
+
 collector = PyLamarr.collectors.PandasCollector((
+    'EventHeader',
+    'MCParticle',
     'MCParticles',
     'MCVertices',
-    'tmp_particles_recoed_as',
-    'tmp_resolution_out',
+    'ReconstructedParticle',
+    'ParticleID',
+    'MCVertex',
+    'Vertex',
+    'GenParticles',
+    'GenVertices',
     'particles',
     'covariance',
     'pid',
-    'GenParticles',
-    'GenVertices'))
+    'Track',
+    'LHCbTrackState',
+    ))
 
 validator = EDM4hepValidator()
 
-n_batches = 3
+
+
+n_batches = 100#0
 from tqdm import tqdm
 with tqdm(total=n_batches) as progress_bar:
   pipeline = LHCb.BasePipeline([
+      ('PVReco', LHCb.PVReconstruction(condition='2016_pp_MagUp')),
       *LHCb.Tracking.configure_pipeline(),
-      *LHCb.ParticleID.configure_pipeline(library="file:///pclhcb06/mabarbet/PythonFastSim/exports/lb-pidsim-train/compiledmodel_2016-MagUp-sim.so"), 
-      #('PrintStats', print_stats),
+      *LHCb.ParticleID.configure_pipeline(library="file:///pclhcb06/mabarbet/PythonFastSim/exports/pidgan/CompiledModel_sim10-2016MU_latest_v1.so"), 
+      *LHCb.EDM4hep.configure_pipeline(), 
+#      ('PrintStats', print_stats),
       ('UpdateTQDM', PyLamarr.function (lambda db: progress_bar.update(1))),
       ('Validator', validator),
       ('Collector', collector),
@@ -77,7 +90,6 @@ with sql.connect("redo-lhcb-out.db") as db:
     table.to_sql(key, db, index=False)
     
 
-
-
-
+#with open("test-pipeline.xml", "w") as f:
+#  pipeline.to_xml(f)
 

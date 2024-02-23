@@ -106,7 +106,7 @@ class persistent_table:
 
 
 
-## Function
+## custom_query
 @validate_arguments
 def custom_query(query: Union[str,List[str]]):
     @validate_arguments
@@ -124,3 +124,10 @@ def custom_query(query: Union[str,List[str]]):
 
     return _Wrapped
 
+
+@validate_arguments
+def pragma(**kwargs):
+    return custom_query([
+      f"PRAGMA {key}={value};"
+      for key, value in kwargs.items()
+    ])

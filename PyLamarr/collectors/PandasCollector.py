@@ -3,6 +3,7 @@ import PyLamarr
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict
 import pandas as pd 
+import logging
 
 @dataclass
 class PandasCollector:
@@ -12,15 +13,19 @@ class PandasCollector:
 
     @PyLamarr.method
     def __call__(self, db):
+      logger = logging.getLogger("PandasCollector")
       existing_tables = pd.read_sql_query(f"SELECT name FROM sqlite_master WHERE type == 'table'", db)['name'].values.tolist()
       for table in self.tables:
           if table not in self.dataframes.keys():
             self.dataframes[table] = list()
 
           if table in existing_tables:
-            self.dataframes[table].append(pd.read_sql_query(f"SELECT * FROM {table}", db))
+            df = pd.read_sql_query(f"SELECT * FROM {table}", db)
+            self.dataframes[table].append(df)
+            logger.debug(f"Table {table}, requested for collection, contains {len(df)} rows.")
           else:
             self.dataframes[table].append(None)
+            logger.debug(f"Table {table}, requested for collection, NOT FOUND.")
 
     @property
     def dataframe(self):
