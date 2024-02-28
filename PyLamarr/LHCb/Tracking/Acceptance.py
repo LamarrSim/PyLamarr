@@ -1,13 +1,13 @@
 from typing import Tuple, Optional
 from dataclasses import dataclass
-from pydantic import validate_arguments, Field
-from PyLamarr import RemoteResource
+from pydantic import validate_call, Field
+from PyLamarr import RemoteResource 
 from PyLamarr import Wrapper
 
 from ._defaults import default_lib_field
 
 
-@validate_arguments
+@validate_call
 @dataclass(frozen=True)
 class Acceptance(Wrapper):
     library: RemoteResource = default_lib_field

@@ -79,6 +79,10 @@ collector = PyLamarr.collectors.PandasCollector((
     'ClusterInfo',
     ))
 
+PID_MODEL=PyLamarr.RemoteResource(
+  "file:///home/minio/anderlinil/models/PID_sim10-2016MU_latest_v1.so"
+  )
+
 from tqdm import tqdm
 from math import ceil
 with tqdm(total=ceil(len(tarfiles)/batch_size)) as progress_bar:
@@ -88,15 +92,8 @@ with tqdm(total=ceil(len(tarfiles)/batch_size)) as progress_bar:
       ('PVReco', LHCb.PVReconstruction(condition='2016_pp_MagUp')),
       ('RecSummary', LHCb.RecSummaryMaker()),
       *LHCb.Tracking.configure_pipeline(),
-      *LHCb.ParticleID.configure_pipeline(library="file:///pclhcb06/mabarbet/PythonFastSim/exports/pidgan/CompiledModel_sim10-2016MU_latest_v1.so"), 
+      *LHCb.ParticleID.configure_pipeline(library=PID_MODEL), 
       *LHCb.EDM4hep.configure_pipeline(), 
-      ('TrkAcc', LHCb.Tracking.Acceptance()),
-      ('TrkEff', LHCb.Tracking.Efficiency()),
-      ('TrkAssign', LHCb.Tracking.AssignCategory()),
-      ('Propagate2CTB', LHCb.Tracking.PropagateToClosestToBeam()),
-      ('TrkResolution', LHCb.Tracking.Resolution()),
-      ('TrkCovariance', LHCb.Tracking.Covariance()),
-      # *LHCb.ParticleID.configure_pipeline(), 
       # ('PrintStats', print_stats),
       *LHCb.Photons.configure_pipeline(), 
       #('StopThink', PyLamarr.function(lambda db: IPython.embed())),

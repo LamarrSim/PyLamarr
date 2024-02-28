@@ -8,9 +8,9 @@ import pickle
 import IPython
 
 from pathlib import Path
-EFFICIENCY_MODEL = Path("/lbpool/lhcb0/mabarbet/models/Ecal_efficiency_photon_models/")
+EFFICIENCY_MODEL = Path("/home/shared/lamarr/models/ECAL")
 EFFICIENCY_MODEL_VERSION = "20240120-11h56m21s_Ecal_efficiency_photon_2016MU_ann"
-SMEARING_MODEL = Path("/lbpool/lhcb0/mabarbet/models/Ecal_resolution_id_photon_models/")
+SMEARING_MODEL = Path("/home/shared/lamarr/models/ECAL")
 SMEARING_MODEL_VERSION= "20240120-00h09m55s_Ecal_resolution_id_photon_2016MU_gan"
 # SMEARING_MODEL_VERSION = "20240120-03h18m19s_Ecal_resolution_id_photon_2016MU_gan"
 
@@ -46,7 +46,7 @@ def invertColumnTransformer(column_transformer, preprocessed_X):
 
 def _eval_efficiency(X):
   efficiency_model = tf.keras.models.load_model(EFFICIENCY_MODEL/EFFICIENCY_MODEL_VERSION)
-  with open(EFFICIENCY_MODEL / 'tX_2016MU.pkl', 'rb') as tx_file:
+  with open(EFFICIENCY_MODEL / EFFICIENCY_MODEL_VERSION / 'tX.pkl', 'rb') as tx_file:
     tX = pickle.load(tx_file)
 
   y_hat = efficiency_model.predict(tX.transform(X), batch_size=10000, verbose=0)
@@ -55,11 +55,11 @@ def _eval_efficiency(X):
     
 
 def _eval_smearing(X):
-  smearing_model = tf.keras.models.load_model(SMEARING_MODEL/SMEARING_MODEL_VERSION)
-  with open(SMEARING_MODEL / 'tX_2016MU.pkl', 'rb') as tx_file:
+  smearing_model = tf.keras.models.load_model(SMEARING_MODEL / SMEARING_MODEL_VERSION)
+  with open(SMEARING_MODEL / SMEARING_MODEL_VERSION / 'tX.pkl', 'rb') as tx_file:
     tX = pickle.load(tx_file)
 
-  with open(SMEARING_MODEL / 'tY_2016MU.pkl', 'rb') as ty_file:
+  with open(SMEARING_MODEL / SMEARING_MODEL_VERSION / 'tY.pkl', 'rb') as ty_file:
     tY = pickle.load(ty_file)
 
   prep_x = tX.transform(X)
@@ -73,9 +73,6 @@ def _eval_smearing(X):
   ret = invertColumnTransformer(tY, prep_y_hat)
   return ret
 
-
-
-    
 
 @PyLamarr.function
 def PyPhotons(db):
@@ -135,7 +132,7 @@ def PyPhotons(db):
   sigma_y = np.sqrt(np.exp(-1.65 * np.log(e) + 17.0))
   sigma_e = np.sqrt(np.exp(0.89 * np.log(e) + 5.1))
 
-  IPython.embed()
+  #IPython.embed()
 
 
   clusters = pd.DataFrame(dict(
