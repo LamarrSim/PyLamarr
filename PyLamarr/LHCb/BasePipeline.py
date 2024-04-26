@@ -17,7 +17,7 @@ class BasePipeline:
                  sequence: Union[List[Tuple[Any]], None] = None,
                  loader: str = "HepMC2DataLoader",
                  batch=1,
-                 dbfile_fmt="file:/tmp/lamarr.{thread:016x}.db?cache=shared",
+                 dbfile_fmt="file:/tmp/lamarr.{thread:016x}.db",
                  clean_before_loading=True,
                  clean_after_finishing=True,
                  ):
@@ -106,34 +106,43 @@ class BasePipeline:
         db.seed(tid)
         loader = self.loader(db)
 
-        clean = SQLamarr.Pipeline([SQLamarr.CleanEventStore(db)])
+        clean = SQLamarr.Pipeline([
+            SQLamarr.CleanEventStore(db),
+            ])
 
-        pipeline = SQLamarr.Pipeline([
-            make_algo(db) for _, make_algo in self.sequence
-        ])
+        pipeline = SQLamarr.Pipeline(
+            [make_algo(db) for _, make_algo in self.sequence],
+        )
 
         self.logger.info(f"Algorithms:")
         for iAlg, (name, _) in enumerate(self.sequence, 1):
           self.logger.info(f"  {iAlg:>2d}. {name}")
 
         for batch in self._batched(load_args, self.batch):
-            if self._clean_before_loading:
-                self.logger.debug("Cleaning database")
-                clean.execute()
-            else:
-                self.logger.debug("Cleaning database was DISABLED")
-
             for load_arg in batch:
                 self.logger.info(f"Loading {load_arg}")
                 if isinstance(load_arg, (list, tuple)):
-                    loader.load(*load_arg)
+                    sub_batch_generator = loader.load(*load_arg)
                 elif isinstance(load_arg, (dict,)):
-                    loader.load(**load_arg)
+                    sub_batch_generator = loader.load(**load_arg)
                 else:
-                    loader.load(load_arg)
+                    sub_batch_generator = loader.load(load_arg)
 
-            self.logger.debug(f"Executing pipeline on a batch of {len(batch)}")
-            pipeline.execute()
+            for sub_batch in sub_batch_generator:
+                self.logger.info(f"Processing {sub_batch}")
+                if self._clean_before_loading:
+                    self.logger.debug("Cleaning database for processing a new batch")
+                    clean.execute()
+                else:
+                    self.logger.warning("Cleaning database was DISABLED")
+                
+                self.logger.debug(f"Executing pipeline on a batch of {len(sub_batch)} events")
+                sub_batch.load()
+
+                self.logger.debug(f"Executing the pipeline")
+                pipeline.execute()
+
+                self.logger.debug(f"Completed processing of batch")
 
         if self._clean_after_finishing:
             if parsed_fmt.startswith("file:"):

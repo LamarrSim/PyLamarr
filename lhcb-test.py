@@ -8,6 +8,7 @@ sys.path.append("../SQLamarr/python")
 from argparse import ArgumentParser
 import PyLamarr
 import logging
+import SQLamarr
 import time
 import random
 
@@ -40,7 +41,7 @@ print (tarfiles)
 ################################################################################
 @PyLamarr.function
 def print_stats (db):
-  df = pd.read_sql_query("SELECT * FROM ClusterInfo LIMIT 5;", db)
+  df = pd.read_sql_query("SELECT * FROM MCParticles LIMIT 5;", db)
   print (df)
 
 data_pkg = "https://github.com/LamarrSim/SQLamarr/raw/master/temporary_data" 
@@ -55,7 +56,7 @@ from glob import glob
 
 batch_size = 1
 
-loader = PyLamarr.loaders.CompressedHepMCLoader(max_event=None)
+loader = PyLamarr.loaders.CompressedHepMCLoader(events_per_batch=10)
 
 collector = PyLamarr.collectors.PandasCollector((
     'EventHeader',
@@ -94,7 +95,7 @@ with tqdm(total=ceil(len(tarfiles)/batch_size)) as progress_bar:
       *LHCb.Tracking.configure_pipeline(),
       *LHCb.ParticleID.configure_pipeline(library=PID_MODEL), 
       *LHCb.EDM4hep.configure_pipeline(), 
-      # ('PrintStats', print_stats),
+      ('PrintStats', print_stats),
       *LHCb.Photons.configure_pipeline(), 
       #('StopThink', PyLamarr.function(lambda db: IPython.embed())),
       ('UpdateTQDM', PyLamarr.function (lambda db: progress_bar.update(1))),

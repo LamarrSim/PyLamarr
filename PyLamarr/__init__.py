@@ -3,6 +3,7 @@ from PyLamarr.Wrapper import Wrapper, GenericWrapper, persistent_table, custom_q
 from PyLamarr.RemoteResource import RemoteResource
 from PyLamarr.function import function, method
 from PyLamarr.Concatenate import Concatenate
+from PyLamarr.EventBatch import EventBatch
 from PyLamarr import loaders
 from PyLamarr import collectors
 
