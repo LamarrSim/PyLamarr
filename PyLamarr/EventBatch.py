@@ -9,7 +9,7 @@ class EventBatch:
     description: Optional[str] = None
 
     def __len__(self):
-        return self.n_events
+        return self.n_events or 0
 
     def load(self):
         raise NotImplementedError

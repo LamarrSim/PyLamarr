@@ -1,5 +1,20 @@
 import PyLamarr
 from functools import partial
+from dataclasses import dataclass
+from typing import Dict, Any
+from dataclasses import dataclass
+
+@dataclass
+class PandasEventBatch (PyLamarr.EventBatch):
+    dataframe_dict: Dict[str, Any] = None
+    database: Any = None
+
+    def load(self):
+        with self.database.connect() as c:
+            for name, df in self.dataframe_dict.items():
+                df.to_sql(name, c, **self._kwargs)
+
+
 
 class PandasLoader:
     """
@@ -40,9 +55,7 @@ class PandasLoader:
             raise ValueError("PandasLoader tried loading with uninitialized db.\n"
                     "Missed ()?")
 
-        with self._db.connect() as c:
-            for name, df in dataframe_dict.items():
-                df.to_sql(name, c, **self._kwargs)
+        yield PandasEventBatch(dataframe_dict=dataframe_dict, database=self._db)
 
 
         

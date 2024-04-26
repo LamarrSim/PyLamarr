@@ -1,7 +1,25 @@
 import numpy as np 
-from typing import List, Union
+import logging
+from typing import Collection, Union, Dict, Optional, Any
+from dataclasses import dataclass
 
-from PyLamarr.loaders import PandasLoader
+import PyLamarr
+
+@dataclass
+class UprootEventBatch (PyLamarr.EventBatch):
+    dataframe_dict: Dict[str, Any] = None
+    database: Any = None
+    bid_var: Collection[str] = None
+    batch_selector: Any = None
+
+    def load(self):
+        with self.database.connect() as c:
+            for name, df in self.dataframe_dict.items():
+                (
+                        df[df[self.bid_var] == self.batch_selector]
+                        .drop(columns=[self.bid_var])
+                        .to_sql(name, c, if_exists='append', index=False)
+                )
 
 class UprootLoader:
     """
@@ -22,7 +40,7 @@ class UprootLoader:
     """
     def __init__ (self, 
             input_file: str, 
-            tables: List[str], 
+            tables: Collection[str], 
             collector: str = 'LamarrCollector', 
             batch_id_var: str = 'batch_id',
             max_rows: Union[int, None] = None
@@ -45,6 +63,7 @@ class UprootLoader:
                 n: pd.DataFrame(root_dir[n].arrays(library='np', entry_stop=max_rows)) for n in self.tables
                 } 
 
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     @property 
     def batches(self):
@@ -60,11 +79,12 @@ class UprootLoader:
         if self._db is None:
             raise ValueError("PandasLoader tried loading with uninitialized db.\n"
                     "Missed ()?")
-
-        with self._db.connect() as c:
-            for name, df in self._dataframe.items():
-                (
-                        df[df[self.bid_var] == self._batch_codes[batch]]
-                        .drop(columns=[self.bid_var])
-                        .to_sql(name, c, if_exists='append', index=False)
-                )
+        
+        self.logger.debug(f"Preparing uproot loader for batch {batch}")
+        yield UprootEventBatch(
+            description=f"batch_id: {batch}",
+            dataframe_dict=self._dataframe,
+            database=self._db,
+            bid_var=self.bid_var,
+            batch_selector=self._batch_codes[batch],
+        )

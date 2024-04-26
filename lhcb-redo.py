@@ -33,7 +33,7 @@ def print_stats (db):
   print(pd.read_sql_query("SELECT COUNT(*) AS numberOfTracks FROM Track", db))
 
 loader = PyLamarr.loaders.UprootLoader(
-            "/pclhcb06/landerli/LamarrOnGaussino/lhcb-gaussino/Today/Gaussino/LamarrExample.root",
+            "/home/shared/lamarr/anderlinil/PyLamarr/LamarrExample.root",
             tables=('MCVertices', 'DataSources', 'MCParticles', 'GenVertices', 'GenParticles', 'GenEvents'),
         )
 
@@ -57,7 +57,9 @@ collector = PyLamarr.collectors.PandasCollector((
 
 validator = EDM4hepValidator()
 
-
+PID_MODEL=PyLamarr.RemoteResource(
+  "file:///home/minio/anderlinil/models/PID_sim10-2016MU_latest_v1.so"
+  )
 
 n_batches = 100#0
 from tqdm import tqdm
@@ -65,7 +67,7 @@ with tqdm(total=n_batches) as progress_bar:
   pipeline = LHCb.BasePipeline([
       ('PVReco', LHCb.PVReconstruction(condition='2016_pp_MagUp')),
       *LHCb.Tracking.configure_pipeline(),
-      *LHCb.ParticleID.configure_pipeline(library="file:///pclhcb06/mabarbet/PythonFastSim/exports/pidgan/CompiledModel_sim10-2016MU_latest_v1.so"), 
+      *LHCb.ParticleID.configure_pipeline(library=PID_MODEL), 
       *LHCb.EDM4hep.configure_pipeline(), 
 #      ('PrintStats', print_stats),
       ('UpdateTQDM', PyLamarr.function (lambda db: progress_bar.update(1))),

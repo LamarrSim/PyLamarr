@@ -1,0 +1,241 @@
+DataSources:
+- datasource
+- datasource_id
+- evt_number
+- run_number
+EventHeader:
+- eventNumber
+- event_id
+- runNumber
+- timeStamp
+- weight
+GenEvents:
+- collision
+- datasource_id
+- genevent_id
+- t
+- x
+- y
+- z
+GenParticles:
+- end_vertex
+- genevent_id
+- genparticle_id
+- hepmc_id
+- m
+- pe
+- pid
+- production_vertex
+- px
+- py
+- pz
+- status
+GenVertices:
+- genevent_id
+- genvertex_id
+- hepmc_id
+- is_primary
+- status
+- t
+- x
+- y
+- z
+LHCbTrackState:
+- covMatrix_00
+- covMatrix_01
+- covMatrix_02
+- covMatrix_03
+- covMatrix_04
+- covMatrix_11
+- covMatrix_12
+- covMatrix_13
+- covMatrix_14
+- covMatrix_22
+- covMatrix_23
+- covMatrix_24
+- covMatrix_33
+- covMatrix_34
+- covMatrix_44
+- event_id
+- location
+- momentum
+- qOverP
+- referencePoint_x
+- referencePoint_y
+- referencePoint_z
+- slope_x
+- slope_y
+- track_id
+MCParticle:
+- PDG
+- charge
+- endpoint_x
+- endpoint_y
+- endpoint_z
+- event_id
+- generatorStatus
+- mass
+- mcparticle_id
+- momentum_x
+- momentum_y
+- momentum_z
+- simulatorStatus
+- time
+- vertex_x
+- vertex_y
+- vertex_z
+MCParticle__daughters__MCParticle:
+- daughter
+- parent
+MCParticle__parents__MCParticle:
+- daughter
+- parent
+MCParticles:
+- end_vertex
+- genevent_id
+- genparticle_id
+- is_signal
+- m
+- mcparticle_id
+- pe
+- pid
+- production_vertex
+- px
+- py
+- pz
+MCVertex:
+- event_id
+- is_primary
+- position_x
+- position_y
+- position_z
+- time
+- vertex_id
+MCVertices:
+- genevent_id
+- genvertex_id
+- is_primary
+- mcvertex_id
+- status
+- t
+- x
+- y
+- z
+ParticleID:
+- PDG
+- algorithmType
+- event_id
+- likelihood
+- particle_id
+- type
+ReconstructedParticle:
+- PDG
+- charge
+- energy
+- event_id
+- mass
+- mcparticle_id
+- momentum_x
+- momentum_y
+- momentum_z
+- particle_id
+- referencePoint_x
+- referencePoint_y
+- referencePoint_z
+- type
+Track:
+- chi2
+- event_id
+- ghostProb
+- mcparticle_id
+- ndf
+- track_id
+- type
+Vertex:
+- covMatrix_xx
+- covMatrix_yx
+- covMatrix_yy
+- covMatrix_zx
+- covMatrix_zy
+- covMatrix_zz
+- event_id
+- is_primary
+- position_x
+- position_y
+- position_z
+- time
+- vertex_id
+Vertices:
+- genevent_id
+- mcvertex_id
+- sigma_x
+- sigma_y
+- sigma_z
+- t
+- vertex_id
+- vertex_type
+- x
+- y
+- z
+covariance:
+- cov00
+- cov01
+- cov02
+- cov03
+- cov04
+- cov11
+- cov12
+- cov13
+- cov14
+- cov22
+- cov23
+- cov24
+- cov33
+- cov34
+- cov44
+- mcparticle_id
+ismuoneff:
+- IsMuonEff
+- mcparticle_id
+particles:
+- chi2PerDoF
+- dp
+- dtx
+- dty
+- dx
+- dy
+- dz
+- ghostProb
+- mcparticle_id
+- nDoF_f
+- track_type
+pid:
+- MuonBkgLL
+- MuonMuLL
+- PIDK
+- PIDe
+- PIDmu
+- PIDp
+- ProbNNe
+- ProbNNk
+- ProbNNmu
+- ProbNNp
+- ProbNNpi
+- RichDLLK
+- RichDLLe
+- RichDLLmu
+- RichDLLp
+- isMuon
+- mcparticle_id
+tmp_closest_to_beam:
+- mcparticle_id
+- x
+- y
+- z
+tmp_is_muon:
+- is_muon
+- ismuoneff
+- mcparticle_id
+tmp_particles_recoed_as:
+- mcparticle_id
+- track_type
