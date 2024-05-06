@@ -75,13 +75,14 @@ def MCParticle():
     """
 
 
-@PyLamarr.persistent_table(('daughter', 'parent'))
+@PyLamarr.persistent_table(('event_id', 'daughter', 'parent'))
 def MCParticle__parents__MCParticle():
     """
     Zip table from parent to daughter
     """
     return """
     SELECT
+      gev.datasource_id AS event_id,
       mcp.mcparticle_id AS daughter,
       parent.mcparticle_id AS parent
     FROM MCParticles AS mcp
@@ -91,6 +92,10 @@ def MCParticle__parents__MCParticle():
       ON parent_gp.end_vertex == daughter_gp.production_vertex
     LEFT JOIN MCParticles AS parent
       ON parent.genparticle_id == parent_gp.genparticle_id
+    LEFT JOIN GenParticles AS gp
+      ON mcp.genparticle_id == gp.genparticle_id
+    LEFT JOIN GenEvents AS gev
+      ON gp.genevent_id == gev.genevent_id
     """
 
 

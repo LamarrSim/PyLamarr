@@ -136,7 +136,7 @@ class CompressedHepMCLoader:
                 _hepmcloader=self._hepmcloader,
             )
             
-            if tot_events > 0:
+            if tot_events > 0 and self._events_per_batch is not None:
                 batch_info['n_batches'] = ceil(tot_events/self._events_per_batch) 
 
             if self._max_event is not None and event_counter >= self._max_event: 
