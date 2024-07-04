@@ -77,6 +77,46 @@ class EDM4hepValidator:
                         ('int', f"{member}_y"),
                         ('int', f"{member}_z"),
                         ]
+                elif re.match("edm4hep::CovMatrix3[df].*", dtype):
+                    buff += [
+                        ('float', f"{member}_00"), 
+                        ('float', f"{member}_01"),
+                        ('float', f"{member}_02"),
+                        ('float', f"{member}_11"),
+                        ('float', f"{member}_12"),
+                        ('float', f"{member}_22"),
+                        ]
+                elif re.match("edm4hep::CovMatrix4[df].*", dtype):
+                    buff += [
+                        ('float', f"{member}_00"), 
+                        ('float', f"{member}_01"),
+                        ('float', f"{member}_02"),
+                        ('float', f"{member}_03"),
+                        ('float', f"{member}_11"),
+                        ('float', f"{member}_12"),
+                        ('float', f"{member}_13"),
+                        ('float', f"{member}_22"),
+                        ('float', f"{member}_23"),
+                        ('float', f"{member}_33"),
+                        ]
+                elif re.match("edm4hep::CovMatrix5[df].*", dtype):
+                    buff += [
+                        ('float', f"{member}_00"), 
+                        ('float', f"{member}_01"),
+                        ('float', f"{member}_02"),
+                        ('float', f"{member}_03"),
+                        ('float', f"{member}_04"),
+                        ('float', f"{member}_11"),
+                        ('float', f"{member}_12"),
+                        ('float', f"{member}_13"),
+                        ('float', f"{member}_14"),
+                        ('float', f"{member}_22"),
+                        ('float', f"{member}_23"),
+                        ('float', f"{member}_24"),
+                        ('float', f"{member}_33"),
+                        ('float', f"{member}_34"),
+                        ('float', f"{member}_44"),
+                        ]
                 elif re.match("edm4hep::Quantity", dtype):
                     buff += [
                         ('float', f"{member}_best"), 
