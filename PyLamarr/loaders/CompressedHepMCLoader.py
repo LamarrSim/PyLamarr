@@ -1,4 +1,5 @@
 from typing import List
+from contextlib import contextmanager
 from math import ceil
 import shutil
 import random
@@ -23,8 +24,9 @@ class HepMC2EventBatch (EventBatch):
     def load(self):
         files_runs_events = zip(self.input_files, self.run_numbers, self.event_numbers)
         for hepmc_file, run_number, event_number in files_runs_events:
-            logging.getLogger('HepMC2EventBatch').debug(f"Loading {hepmc_file}")
+            logging.getLogger('HepMC2EventBatch').debug(f"Loading file {hepmc_file}")
             self._hepmcloader.load(hepmc_file, run_number, event_number)
+            logging.getLogger("HepMC2EventBatch").debug("Loaded.")
 
 
 
@@ -78,7 +80,9 @@ class CompressedHepMCLoader:
         matches = re.findall(self._regexp_totEvents, filename)
         return int(matches[-1]) if len(matches) else default
 
-    def files_in_archive(self, filename: str):
+
+    @contextmanager
+    def archive_mirror(self, filename: str):
         tmp_dir = os.path.join(
             self.tmpdir, 
             f"pylamarr.tmp.{random.randint(0, 0xFFFFFF):06x}"
@@ -87,24 +91,47 @@ class CompressedHepMCLoader:
         tmp_archive = f"{tmp_dir}.tar.bz2"
 
         try:
-            self.logger.info(f"Copying archive to local storage")
-            shutil.copy(filename, tmp_archive)
-            self.logger.info(f"Extracting archive {filename} in {tmp_dir}")
-            with tarfile.open(tmp_archive) as archive:
-                archive.extractall(tmp_dir)
-
-#            for filename in glob(os.path.join(tmp_dir, '*')):
-#                yield filename
-            for (root, dirs, filenames) in os.walk(tmp_dir):
-                for filename in filenames:
-                    if filename.endswith(".mc2"):
-                        yield os.path.join(root, filename)
-
+            yield self.files_in_archive(filename, tmp_dir=tmp_dir, tmp_archive=tmp_archive)
         finally:
             self.logger.info(f"Removing directory {tmp_dir}")
             shutil.rmtree(tmp_dir)
             self.logger.info(f"Removing temporary file {tmp_archive}")
             os.remove(tmp_archive)
+
+    def copy_and_maybe_patch_hepmc(self, filename):
+        "Apply patches to the HepMC2 file to avoid segmentation fault in HepMC3 ascii reader"
+        with open(filename) as input_file:
+            lines = []
+            for line in input_file:
+                line = line[:-1] if line[-1] == '\n' else line
+                if len(line) > 0 and line[0] == 'E': ## Event line
+                    tokens = line.split(" ")
+                    # Documentation at https://hepmc.web.cern.ch/hepmc/releases/HepMC2_user_manual.pdf
+                    # Section 6.2
+                    if int(tokens[6]) == 1:  # For Particle Gun process
+                        tokens[7] = "0"        # disable signal vertex
+                        self.logger.warning("Applying a patch to the input HepMC2 file SPECIFIC FOR PARTICLE GUNS!")
+                    lines.append(" ".join(tokens))
+                else:
+                    lines.append(line)
+
+            return "\n".join(lines)
+        
+    def files_in_archive(self, filename: str, tmp_dir: str, tmp_archive: str):
+        self.logger.info(f"Copying archive to local storage")
+        shutil.copy(filename, tmp_archive)
+        self.logger.info(f"Extracting archive {filename} in {tmp_dir}")
+        with tarfile.open(tmp_archive) as archive:
+            archive.extractall(tmp_dir)
+
+        for (root, dirs, filenames) in os.walk(tmp_dir):
+            for filename in filenames:
+                if filename.endswith(".mc2"):
+                    self.logger.info(f"Found {filename} in archive.")
+                    with open(os.path.join(tmp_dir, filename), 'w') as file_copy:
+                        file_copy.write(self.copy_and_maybe_patch_hepmc(os.path.join(root, filename)))
+                    yield os.path.join(tmp_dir, filename)
+
 
 
     def load(self, filename: str):
@@ -115,8 +142,6 @@ class CompressedHepMCLoader:
             raise ValueError("PandasLoader tried loading with uninitialized db.\n"
                     "Missed ()?")
 
-
-
         event_counter = 0
         batch_counter = 0
         tot_events = min(
@@ -125,40 +150,41 @@ class CompressedHepMCLoader:
             )
 
         batches = {k: [] for k in ('input_files', 'run_numbers', 'event_numbers')}
-        for i_file, hepmc_file in enumerate(self.files_in_archive(filename)):
-            run_number = self._get_run_number(filename) 
-            event_number = self._get_evt_number(hepmc_file, i_file)
-            n_events = len(batches['event_numbers'])
-            batch_info = dict(
-                n_events=n_events,
-                batch_id=batch_counter,
-                description=f"Run {run_number}", 
-                _hepmcloader=self._hepmcloader,
-            )
-            
-            if tot_events > 0 and self._events_per_batch is not None:
-                batch_info['n_batches'] = ceil(tot_events/self._events_per_batch) 
+        with self.archive_mirror(filename) as files_in_archive:
+            for i_file, hepmc_file in enumerate(files_in_archive):
+                run_number = self._get_run_number(filename) 
+                event_number = self._get_evt_number(hepmc_file, i_file)
+                n_events = len(batches['event_numbers'])
+                batch_info = dict(
+                    n_events=n_events,
+                    batch_id=batch_counter,
+                    description=f"Run {run_number}", 
+                    _hepmcloader=self._hepmcloader,
+                )
+                
+                if tot_events > 0 and self._events_per_batch is not None:
+                    batch_info['n_batches'] = ceil(tot_events/self._events_per_batch) 
 
-            if self._max_event is not None and event_counter >= self._max_event: 
-                yield HepMC2EventBatch(
-                    **batch_info,
-                    **batches
-                    )
-                batch_counter += 1
-                break
+                if self._max_event is not None and event_counter >= self._max_event: 
+                    break
 
-            if self._events_per_batch is not None and n_events >= self._events_per_batch: 
-                yield HepMC2EventBatch(
-                    **batch_info,
-                    **batches
-                    )
-                batches = {k: [] for k in batches.keys()}
-                batch_counter += 1
+                if self._events_per_batch is not None and n_events >= self._events_per_batch: 
+                    yield HepMC2EventBatch(
+                        **batch_info,
+                        **batches
+                        )
+                    batches = {k: [] for k in batches.keys()}
+                    batch_counter += 1
 
 
-            batches['input_files'].append(hepmc_file)
-            batches['run_numbers'].append(run_number)
-            batches['event_numbers'].append(event_number)
-            event_counter += 1
+                batches['input_files'].append(hepmc_file)
+                batches['run_numbers'].append(run_number)
+                batches['event_numbers'].append(event_number)
+                event_counter += 1
+                    
+            yield HepMC2EventBatch(
+                **batch_info,
+                **batches
+                )
 
 
