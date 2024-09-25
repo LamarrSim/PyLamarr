@@ -109,7 +109,7 @@ class CompressedHepMCLoader:
                     # Documentation at https://hepmc.web.cern.ch/hepmc/releases/HepMC2_user_manual.pdf
                     # Section 6.2
                     if int(tokens[6]) == 1:  # For Particle Gun process
-                        tokens[7] = "0"        # disable signal vertex
+                        tokens[7] = "-10000"  # disable signal vertex
                         self.logger.warning("Applying a patch to the input HepMC2 file SPECIFIC FOR PARTICLE GUNS!")
                     lines.append(" ".join(tokens))
                 else:
@@ -150,17 +150,18 @@ class CompressedHepMCLoader:
             )
 
         batches = {k: [] for k in ('input_files', 'run_numbers', 'event_numbers')}
+        batch_info = dict()
         with self.archive_mirror(filename) as files_in_archive:
             for i_file, hepmc_file in enumerate(files_in_archive):
                 run_number = self._get_run_number(filename) 
                 event_number = self._get_evt_number(hepmc_file, i_file)
                 n_events = len(batches['event_numbers'])
-                batch_info = dict(
+                batch_info.update(dict(
                     n_events=n_events,
                     batch_id=batch_counter,
                     description=f"Run {run_number}", 
                     _hepmcloader=self._hepmcloader,
-                )
+                ))
                 
                 if tot_events > 0 and self._events_per_batch is not None:
                     batch_info['n_batches'] = ceil(tot_events/self._events_per_batch) 
@@ -182,9 +183,5 @@ class CompressedHepMCLoader:
                 batches['event_numbers'].append(event_number)
                 event_counter += 1
                     
-            yield HepMC2EventBatch(
-                **batch_info,
-                **batches
-                )
 
 
