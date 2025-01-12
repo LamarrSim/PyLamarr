@@ -8,9 +8,9 @@ import pickle
 import IPython
 
 from pathlib import Path
-EFFICIENCY_MODEL = Path("/home/shared/lamarr/models/ECAL")
+EFFICIENCY_MODEL = Path("/home/jfs/private/lamarr/models/ECAL")
 EFFICIENCY_MODEL_VERSION = "20240120-11h56m21s_Ecal_efficiency_photon_2016MU_ann"
-SMEARING_MODEL = Path("/home/shared/lamarr/models/ECAL")
+SMEARING_MODEL = Path("/home/jfs/private/lamarr/models/ECAL")
 SMEARING_MODEL_VERSION= "20240120-00h09m55s_Ecal_resolution_id_photon_2016MU_gan"
 # SMEARING_MODEL_VERSION = "20240120-03h18m19s_Ecal_resolution_id_photon_2016MU_gan"
 
