@@ -1,5 +1,5 @@
 """
-Python data loaders. Helper classes to ease loading data to PyLamarr.
+Python test_data loaders. Helper classes to ease loading test_data to PyLamarr.
 """
 
 from .PandasLoader import PandasLoader

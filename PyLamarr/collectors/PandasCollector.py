@@ -1,14 +1,14 @@
 import PyLamarr
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import Collection, List, Optional, Dict, Union
 import pandas as pd 
 import logging
 
 @dataclass
 class PandasCollector:
-    tables: List[str]
-    dataframes: Dict[str,List[pd.DataFrame]] = field(default_factory=lambda: {})
+    tables: Collection[str]
+    dataframes: Dict[str,List[Union[pd.DataFrame, None]]] = field(default_factory=lambda: {})
     batch_ids: Optional[List[int]] = None
 
     @PyLamarr.method
@@ -33,7 +33,7 @@ class PandasCollector:
 
         for table, dfs in self.dataframes.items():
             batch_ids = self.batch_ids if self.batch_ids is not None else list(range(len(dfs)))
-            dataframes = [df.assign(batch_id=bid) for bid, df in zip(batch_ids, dfs) if df is not None]
+            dataframes = [df.assign(batch_id=bid) for bid, df in zip(batch_ids, dfs) if df is not None and len(df) > 0]
             if len(dataframes):
               ret[table] = pd.concat(dataframes, ignore_index=True)
 

@@ -59,7 +59,7 @@ class RemoteResource (BaseModel):
 
     ### Accessing local resources
     A local resourcce can be encapsulated inside `RemoteResource` which is
-    the expected format for most of the parametrization data in `PyLamarr`.
+    the expected format for most of the parametrization test_data in `PyLamarr`.
 
     For example, if testing your local version of `MyPrimaryVertexSmearing.db`,
     you can write
@@ -81,7 +81,7 @@ class RemoteResource (BaseModel):
     ### Implicit conversion from URL
     Most of the parametrizations relying on external dependencies expect an
     instance of `RemoteResource` identifying the file to obtain the parametrization
-    from. An implicit cast from sring to `RemoteResource` enables passing directly
+    from. An implicit cast from string to `RemoteResource` enables passing directly
     a string with a URL (possibly pointing to a local file), which gets
     transparently converted into a `RemoteResource` instance and used in the file.
     """
@@ -153,6 +153,9 @@ class RemoteResource (BaseModel):
 
         if os.path.exists(self._file) and not force:
             return self
+
+        if self.remote_url.startswith("file://"):
+            raise FileNotFoundError(f"File {self._file} not found.")
 
         logger = logging.getLogger(self.__class__.__name__)
         logger.info(f"Downloading {self.remote_url} to {self._file}")

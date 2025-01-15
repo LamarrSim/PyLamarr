@@ -19,7 +19,7 @@ class PandasEventBatch (PyLamarr.EventBatch):
 class PandasLoader:
     """
     Ease loading a set of pandas DataFrames to the SQLite event model.
-    As the other python data loaders, PandasLoader should be configured in the 
+    As the other python test_data loaders, PandasLoader should be configured in the
     constructor.
     The configured object is then called during the event loop to 
     pass the updated connection to the SQLamarr.SQLite3DB instance.
