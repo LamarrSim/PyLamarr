@@ -107,8 +107,6 @@ class PyPhotons:
         ovx, ovy, ovz = gen_photons[['x', 'y', 'z']].values.astype(np.float64).T
         e, px, py, pz = gen_photons[['pe', 'px', 'py', 'pz']].values.astype(np.float64).T
 
-        print (e)
-
         tx = px/pz
         ty = py/pz
 
