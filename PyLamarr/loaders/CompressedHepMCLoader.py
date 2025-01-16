@@ -12,6 +12,8 @@ import re
 
 from typing import Optional, Collection, Any
 
+from pkg_resources import require
+
 from PyLamarr import EventBatch
 
 @dataclass
@@ -27,8 +29,6 @@ class HepMC2EventBatch (EventBatch):
             logging.getLogger('HepMC2EventBatch').debug(f"Loading file {hepmc_file}")
             self._hepmcloader.load(hepmc_file, run_number, event_number)
             logging.getLogger("HepMC2EventBatch").debug("Loaded.")
-
-
 
 class CompressedHepMCLoader:
     """
@@ -51,10 +51,8 @@ class CompressedHepMCLoader:
         self._regexp_totEvents = regexp_totEvents
         self._max_event = max_event
         self._events_per_batch = events_per_batch
+        self._particle_gun_patched_events = 0
         self.logger = logging.getLogger("CompressedHepMCLoad")
-
-
-
 
     def __call__(self, database):
         import SQLamarr
@@ -70,7 +68,6 @@ class CompressedHepMCLoader:
             self._batch_counter += 1
 
         return int(self._batch_counter)
-
 
     def _get_evt_number(self, filename: str, default: int) -> int:
         matches = re.findall(self._regexp_evtNumber, filename)
@@ -100,6 +97,7 @@ class CompressedHepMCLoader:
 
     def copy_and_maybe_patch_hepmc(self, filename):
         "Apply patches to the HepMC2 file to avoid segmentation fault in HepMC3 ascii reader"
+        requires_particle_gun_patch = False
         with open(filename) as input_file:
             lines = []
             for line in input_file:
@@ -109,9 +107,22 @@ class CompressedHepMCLoader:
                     # Documentation at https://hepmc.web.cern.ch/hepmc/releases/HepMC2_user_manual.pdf
                     # Section 6.2
                     if int(tokens[6]) == 1:  # For Particle Gun process
-                        tokens[7] = "-10000"  # disable signal vertex
-                        self.logger.warning("Applying a patch to the input HepMC2 file SPECIFIC FOR PARTICLE GUNS!")
-                    lines.append(" ".join(tokens))
+                        self._particle_gun_patched_events += 1
+                        n_vertices = int(tokens[8])
+                        tokens[8] = str(n_vertices + 1)
+                        tokens[12 + int(tokens[11])] = str(1)
+                        tokens += ["1.0"]
+                        requires_particle_gun_patch = True
+                        lines += [" ".join(tokens), 'N 1 "0"']
+                    else:
+                        lines.append(line)
+                elif len(line) > 0 and line[0] == 'V' and requires_particle_gun_patch: # First vertex
+                    # PGUN Patch:
+                    # HepMC3::HepMC2Reader does not tolerate a PV with no incoming particles,
+                    # so we create a fake vertex and a fake beam particle.
+                    vertex_id = line.split(" ")[1]
+                    lines += ["V -99999 0 0 0 0 0 0 0 0", "P 0 0 0. 0. 0. 0. 0. 3 0 0 %s 0" % vertex_id, line]
+                    requires_particle_gun_patch = False
                 else:
                     lines.append(line)
 
@@ -182,6 +193,11 @@ class CompressedHepMCLoader:
                 batches['run_numbers'].append(run_number)
                 batches['event_numbers'].append(event_number)
                 event_counter += 1
-                    
+
+        if self._particle_gun_patched_events > 0:
+            self.logger.warning(
+                f"{self._particle_gun_patched_events} / {event_counter} events were identified as generated with a "
+                "Particle Gun and patched."
+            )
 
 
