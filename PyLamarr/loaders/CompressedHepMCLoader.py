@@ -12,8 +12,6 @@ import re
 
 from typing import Optional, Collection, Any
 
-from pkg_resources import require
-
 from PyLamarr import EventBatch
 
 @dataclass
@@ -81,76 +79,73 @@ class CompressedHepMCLoader:
     @contextmanager
     def archive_mirror(self, filename: str):
         tmp_dir = os.path.join(
-            self.tmpdir, 
+            self.tmpdir,
             f"pylamarr.tmp.{random.randint(0, 0xFFFFFF):06x}"
             )
+        self.logger.info(f"Creating temporary directory {tmp_dir}")
         os.mkdir(tmp_dir)
-        tmp_archive = f"{tmp_dir}.tar.bz2"
 
         try:
-            yield self.files_in_archive(filename, tmp_dir=tmp_dir, tmp_archive=tmp_archive)
+            yield self.files_in_archive(filename, tmp_dir=tmp_dir)
         finally:
             self.logger.info(f"Removing directory {tmp_dir}")
             shutil.rmtree(tmp_dir)
-            self.logger.info(f"Removing temporary file {tmp_archive}")
-            os.remove(tmp_archive)
 
-    def copy_and_maybe_patch_hepmc(self, filename):
-        "Apply patches to the HepMC2 file to avoid segmentation fault in HepMC3 ascii reader"
+    def copy_and_maybe_patch_hepmc(self, input_file_data: str):
+        """
+        Apply patches to the HepMC2 file to avoid segmentation fault in HepMC3 ascii reader
+        """
         requires_particle_gun_patch = False
-        with open(filename) as input_file:
-            lines = []
-            for line in input_file:
-                line = line[:-1] if line[-1] == '\n' else line
-                if len(line) > 0 and line[0] == 'E': ## Event line
-                    tokens = line.split(" ")
-                    # Documentation at https://hepmc.web.cern.ch/hepmc/releases/HepMC2_user_manual.pdf
-                    # Section 6.2
-                    if int(tokens[6]) == 1:  # For Particle Gun process
-                        self._particle_gun_patched_events += 1
-                        n_vertices = int(tokens[8])
-                        tokens[8] = str(n_vertices + 1)
-                        tokens[12 + int(tokens[11])] = str(1)
-                        tokens += ["1.0"]
-                        requires_particle_gun_patch = True
-                        lines += [" ".join(tokens), 'N 1 "0"']
-                    else:
-                        lines.append(line)
-                elif len(line) > 0 and line[0] == 'V' and requires_particle_gun_patch: # First vertex
-                    # PGUN Patch:
-                    # HepMC3::HepMC2Reader does not tolerate a PV with no incoming particles,
-                    # so we create a fake vertex and a fake beam particle.
-                    vertex_id = line.split(" ")[1]
-                    lines += ["V -99999 0 0 0 0 0 0 0 0", "P 0 0 0. 0. 0. 0. 0. 3 0 0 %s 0" % vertex_id, line]
-                    requires_particle_gun_patch = False
+        src_lines = input_file_data.split('\n')
+        if len([li for li in src_lines if li.replace("\n", "").replace(" ", "") != ""]) == 0:
+            self.logger.warning(f"No valid line found in input file")
+        dst_lines = []
+
+        for line in src_lines:
+            line = line[:-1] if len(line) > 0 and line[-1] == '\n' else line
+            if len(line) > 0 and line[0] == 'E': ## Event line
+                tokens = line.split(" ")
+                # Documentation at https://hepmc.web.cern.ch/hepmc/releases/HepMC2_user_manual.pdf
+                # Section 6.2
+                if int(tokens[6]) == 1:  # For Particle Gun process
+                    self._particle_gun_patched_events += 1
+                    n_vertices = int(tokens[8])
+                    tokens[8] = str(n_vertices + 1)
+                    tokens[12 + int(tokens[11])] = str(1)
+                    tokens += ["1.0"]
+                    requires_particle_gun_patch = True
+                    dst_lines += [" ".join(tokens), 'N 1 "0"']
                 else:
-                    lines.append(line)
+                    dst_lines.append(line)
+            elif len(line) > 0 and line[0] == 'V' and requires_particle_gun_patch: # First vertex
+                # PGUN Patch:
+                # HepMC3::HepMC2Reader does not tolerate a PV with no incoming particles,
+                # so we create a fake vertex and a fake beam particle.
+                vertex_id = line.split(" ")[1]
+                dst_lines += ["V -99999 0 0 0 0 0 0 0 0", "P 0 0 0. 0. 0. 0. 0. 3 0 0 %s 0" % vertex_id, line]
+                requires_particle_gun_patch = False
+            else:
+                dst_lines.append(line)
 
-            return "\n".join(lines)
+        return "\n".join(dst_lines)
         
-    def files_in_archive(self, filename: str, tmp_dir: str, tmp_archive: str):
-        self.logger.info(f"Copying archive to local storage")
-        shutil.copy(filename, tmp_archive)
-        self.logger.info(f"Extracting archive {filename} in {tmp_dir}")
-        with tarfile.open(tmp_archive) as archive:
-            archive.extractall(tmp_dir)
-
-        for (root, dirs, filenames) in os.walk(tmp_dir):
-            for filename in filenames:
-                if filename.endswith(".mc2"):
-                    self.logger.info(f"Found {filename} in archive.")
-                    with open(os.path.join(tmp_dir, filename), 'w') as file_copy:
-                        file_copy.write(self.copy_and_maybe_patch_hepmc(os.path.join(root, filename)))
-                    yield os.path.join(tmp_dir, filename)
-
-
+    def files_in_archive(self, filename: str, tmp_dir: str):
+        with tarfile.open(filename, mode='r:*') as tar:
+            for member in tar.getmembers():
+                if member.isfile() and member.name.endswith("mc2"):
+                    key = os.path.basename(member.name)
+                    file_content = tar.extractfile(member).read().decode('utf-8')
+                    patched_filename = os.path.join(tmp_dir, os.path.basename(filename))
+                    with open(patched_filename, 'w') as file_copy:
+                        file_copy.write(self.copy_and_maybe_patch_hepmc(file_content))
+                    yield patched_filename
 
     def load(self, filename: str):
         """
         Internal. 
         """
         if self._db is None:
-            raise ValueError("PandasLoader tried loading with uninitialized db.\n"
+            raise ValueError("CompressedHepMCLoader tried loading with uninitialized db.\n"
                     "Missed ()?")
 
         event_counter = 0
@@ -164,23 +159,23 @@ class CompressedHepMCLoader:
         batch_info = dict()
         with self.archive_mirror(filename) as files_in_archive:
             for i_file, hepmc_file in enumerate(files_in_archive):
-                run_number = self._get_run_number(filename) 
+                run_number = self._get_run_number(filename)
                 event_number = self._get_evt_number(hepmc_file, i_file)
                 n_events = len(batches['event_numbers'])
                 batch_info.update(dict(
                     n_events=n_events,
                     batch_id=batch_counter,
-                    description=f"Run {run_number}", 
+                    description=f"Run {run_number}",
                     _hepmcloader=self._hepmcloader,
                 ))
-                
-                if tot_events > 0 and self._events_per_batch is not None:
-                    batch_info['n_batches'] = ceil(tot_events/self._events_per_batch) 
 
-                if self._max_event is not None and event_counter >= self._max_event: 
+                if tot_events > 0 and self._events_per_batch is not None:
+                    batch_info['n_batches'] = ceil(tot_events/self._events_per_batch)
+
+                if self._max_event is not None and event_counter >= self._max_event:
                     break
 
-                if self._events_per_batch is not None and n_events >= self._events_per_batch: 
+                if self._events_per_batch is not None and n_events >= self._events_per_batch:
                     yield HepMC2EventBatch(
                         **batch_info,
                         **batches
