@@ -34,8 +34,13 @@ class PandasCollector:
         for table, dfs in self.dataframes.items():
             batch_ids = self.batch_ids if self.batch_ids is not None else list(range(len(dfs)))
             dataframes = [df.assign(batch_id=bid) for bid, df in zip(batch_ids, dfs) if df is not None and len(df) > 0]
+            # If there is at least one dataframe with entries, it includes the entry and moves forward
             if len(dataframes):
               ret[table] = pd.concat(dataframes, ignore_index=True)
+            # If dataframes are all empty, it picks the first one to avoid errors downstream for missing table
+            elif any([len(df) > 0 for df in dfs]):
+              ret[table] = [df for df in dfs if len(df) > 0][0]
+              ret[table]['batch_id'] = []
 
         return ret
 
