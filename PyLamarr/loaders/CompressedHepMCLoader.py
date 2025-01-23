@@ -130,15 +130,18 @@ class CompressedHepMCLoader:
         return "\n".join(dst_lines)
         
     def files_in_archive(self, filename: str, tmp_dir: str):
+        ret = []
         with tarfile.open(filename, mode='r:*') as tar:
             for member in tar.getmembers():
                 if member.isfile() and member.name.endswith("mc2"):
                     key = os.path.basename(member.name)
                     file_content = tar.extractfile(member).read().decode('utf-8')
-                    patched_filename = os.path.join(tmp_dir, os.path.basename(filename))
+                    patched_filename = os.path.join(tmp_dir, os.path.basename(key))
                     with open(patched_filename, 'w') as file_copy:
                         file_copy.write(self.copy_and_maybe_patch_hepmc(file_content))
-                    yield patched_filename
+                    ret.append(patched_filename)
+
+        return ret
 
     def load(self, filename: str):
         """
